@@ -1,7 +1,11 @@
 __author__ = 'zz'
 
 
-import Lib.models
+from  Lib.models import User
 
-print('i is main!')
+
 print(__file__)
+
+if __name__ == '__main__':
+    user = User()
+    user.login()
