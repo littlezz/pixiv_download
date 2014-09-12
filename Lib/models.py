@@ -5,16 +5,53 @@ import requests
 from Lib import urls
 import pickle
 import os
+from io import StringIO
 from Lib import setting
+from csv import reader
+import re
+
+class Item:
+    patter=re.compile(r'(.*?)mobile')
+
+    def __init__(self, list_):
+        self.illust_id = list_[0]
+        self.author_id = list_[1]
+        self.extensions =  list_[2]
+        self.mobile_image = list_[9]
+        self._dealwith_image()
+
+    def _dealwith_image(self):
+        self.filename = self.mobile_image.split('/')[-1].split('_')[0] + '.' + self.extensions
+        self.image_url = self.patter.match(self.mobile_image).group(1) + self.filename
+
 
 
 class Author:
 
-    def __init__(self, userid):
+    def __init__(self, userid, phpsessid):
         self.userid = userid
+        self.phpsessid = phpsessid
 
-    def get_illust(self, pn=0):
-        pass
+    def _get_illust(self, pn=1):
+        while True:
+            req = requests.get(urls.ILLUST_LIST.format(self.userid, self.phpsessid, pn))
+            if not req.text:
+                break
+            filelike = StringIO(req.text)
+            for i in reader(filelike):
+                yield Item(i)
+
+            pn += 1
+
+    def download_list(self):
+        """
+        在这里和数据库对比过滤已经下载过的.
+        :return: a list include instance of Item
+        """
+
+        return list(self._get_illust())
+
+
 
 
 class User:
