@@ -2,13 +2,50 @@ __author__ = 'zz'
 
 import getpass
 import requests
+from requests import get as _requests_get
+from requests import post as _requests_post
 from Lib import urls
 import pickle
 import os
 from io import StringIO
 from Lib import setting
 from csv import reader
+from functools import wraps
+from requests.exceptions import Timeout
 import re
+
+
+
+def retry_connect(retry_times, timeout):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try_times = 0
+            while True:
+                try:
+                    ret = func(*args, timeout=timeout,**kwargs)
+                except Timeout:
+                    try_times += 1
+                else:
+                    return ret
+
+                if try_times >= retry_times:
+                    raise Timeout
+
+        return wrapper
+    return decorator
+
+
+@retry_connect(setting.RETRY_TIMES, setting.TIMEOUT)
+def requests_get(url, **kwargs):
+    return _requests_get(url, **kwargs)
+
+
+@retry_connect(setting.RETRY_TIMES, setting.TIMEOUT)
+def requests_post(url, data=None, **kwargs):
+    return _requests_post(url, data, **kwargs)
+
+
 
 class Item:
     patter=re.compile(r'(.*?)mobile')
@@ -23,6 +60,10 @@ class Item:
     def _dealwith_image(self):
         self.filename = self.mobile_image.split('/')[-1].split('_')[0] + '.' + self.extensions
         self.image_url = self.patter.match(self.mobile_image).group(1) + self.filename
+
+
+
+
 
 
 

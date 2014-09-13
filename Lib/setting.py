@@ -7,6 +7,9 @@ DATABASE = os.path.join(BASE_DIR, 'data', 'db.sqlite3')
 
 PHPSEESID_FILE = os.path.join('data','phpsessid.pickle')
 
+RETRY_TIMES = 3
+TIMEOUT = 10
+
 """
 maybe i can request http://www.pixiv.net/mypage.php and if content-length <50000 then i
 know i did not login
