@@ -1,7 +1,6 @@
 __author__ = 'zz'
 
 import getpass
-import requests
 from requests import get as _requests_get
 from requests import post as _requests_post
 from Lib import urls
@@ -13,6 +12,8 @@ from csv import reader
 from functools import wraps
 from requests.exceptions import Timeout
 import re
+import threading
+from collections import deque
 
 
 
@@ -23,9 +24,11 @@ def retry_connect(retry_times, timeout):
             try_times = 0
             while True:
                 try:
-                    ret = func(*args, timeout=timeout,**kwargs)
+                    ret = func(*args, timeout=timeout, **kwargs)
                 except Timeout:
+
                     try_times += 1
+                    print('faild ',try_times)
                 else:
                     return ret
 
@@ -34,6 +37,33 @@ def retry_connect(retry_times, timeout):
 
         return wrapper
     return decorator
+
+"""
+def sema_lock(s=SEMA):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            with s:
+                return func(*args, **kwargs)
+
+        return wrapper
+    return decorator
+"""
+def sema_lock(func):
+    @wraps(func)
+    def wrapper(self,s, *args, **kwargs):
+        with s:
+            return func(self, *args, **kwargs)
+
+    return wrapper
+
+def put_data(func):
+    @wraps(func)
+    def wrapper(self, _deque, *args, **kwargs):
+        ret_list = func(self, *args, **kwargs)
+        _deque.append(ret_list)
+
+    return wrapper
 
 
 @retry_connect(setting.RETRY_TIMES, setting.TIMEOUT)
@@ -47,19 +77,35 @@ def requests_post(url, data=None, **kwargs):
 
 
 
+
+
+
+
 class Item:
     patter=re.compile(r'(.*?)mobile')
 
     def __init__(self, list_):
+        self._list = list_
         self.illust_id = list_[0]
         self.author_id = list_[1]
         self.extensions =  list_[2]
         self.mobile_image = list_[9]
+        self.page = list_[19]
+        self.type = 'image'
+        self._dealwith_type()
         self._dealwith_image()
+
+    def _dealwith_type(self):
+        if self.page:
+            self.type = 'manga'
 
     def _dealwith_image(self):
         self.filename = self.mobile_image.split('/')[-1].split('_')[0] + '.' + self.extensions
-        self.image_url = self.patter.match(self.mobile_image).group(1) + self.filename
+        try:
+            self.image_url = self.patter.match(self.mobile_image).group(1) + self.filename
+        #animation url
+        except AttributeError:
+            self.type = 'animation'
 
 
 
@@ -75,7 +121,7 @@ class Author:
 
     def _get_illust(self, pn=1):
         while True:
-            req = requests.get(urls.ILLUST_LIST.format(self.userid, self.phpsessid, pn))
+            req = requests_get(urls.ILLUST_LIST.format(self.userid, self.phpsessid, pn))
             if not req.text:
                 break
             filelike = StringIO(req.text)
@@ -84,13 +130,18 @@ class Author:
 
             pn += 1
 
-    def download_list(self):
+    @sema_lock
+    @put_data
+    def get_illusts(self, support_types=None):
         """
         在这里和数据库对比过滤已经下载过的.
+        在两个装饰器下,这个方法变得有点奇怪,他实际接受两个二外的参数,sema 和 deque.
         :return: a list include instance of Item
         """
-
-        return list(self._get_illust())
+        if not support_types:
+            support_types = ('image',)
+        print('support',support_types)
+        return list(item for item in self._get_illust() if item.type in support_types)
 
 
 
@@ -119,7 +170,7 @@ class User:
             password = getpass.getpass('password:\n')
 
             payload = {'mode': 'login', 'return_to': '', 'pixiv_id': username, 'pass': password, 'skip': 1}
-            self.req = requests.post(urls.LOGIN, data=payload)
+            self.req = requests_post(urls.LOGIN, data=payload)
             if self.req.url == urls.SUCCESS_REDIRECT:
                 self.phpsessid = get_phpsessid(self.req.request.headers['cookie'])
                 self.write_phpsessid()
@@ -144,11 +195,40 @@ class User:
             pickle.dump(self.phpsessid, f)
 
     def check_logined(self):
-        req = requests.get(urls.TEST_LOGGED_URL.format(self.phpsessid))
+        req = requests_get(urls.TEST_LOGGED_URL.format(self.phpsessid))
         if req.text:
             return True
         else:
             return False
+
+
+class Downloader:
+
+    def __init__(self, phpsessid, *args):
+        self.phpsessid = phpsessid
+        self.author_list = args
+        self.download_list = list()
+        self.sema = threading.Semaphore(setting.THREAD_NUMS)
+        self._deque = deque()
+
+    def get_download_list(self):
+        threading_list = []
+        for author in self.author_list:
+            a = Author(author, self.phpsessid)
+            t = threading.Thread(target=a.get_illusts, args=(self.sema, self._deque))
+            threading_list.append(t)
+            t.start()
+
+        [t.join() for t in threading_list]
+        for lt in self._deque:
+            self.download_list.extend(lt)
+
+
+
+
+
+
+
 
 
 class DataBaseApi:
