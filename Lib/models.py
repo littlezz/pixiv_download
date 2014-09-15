@@ -14,8 +14,8 @@ from requests.exceptions import Timeout
 import re
 import threading
 from collections import deque
-
-
+from Lib.urls import referer as referer_template
+from os.path import join as pathjoin
 
 def retry_connect(retry_times, timeout):
     def decorator(func):
@@ -78,6 +78,10 @@ def requests_post(url, data=None, **kwargs):
 
 
 
+def exist_or_create(path):
+    if not os.path.exists(path):
+        os.mkdir(path)
+
 
 
 
@@ -101,27 +105,42 @@ class Item:
 
     def _dealwith_image(self):
         self.filename = self.mobile_image.split('/')[-1].split('_')[0] + '.' + self.extensions
+        self.path = pathjoin(setting.root_folder, self.author_id, self.filename)
         try:
             self.image_url = self.patter.match(self.mobile_image).group(1) + self.filename
         #animation url
         except AttributeError:
             self.type = 'animation'
 
+    @sema_lock
+    def download(self):
+        if os.path.exists(self.path):
+            return
+        headers = {'referer': referer_template.format(self.illust_id)}
+        cookies = {'PHPSESSID': self.phpsessid}
+        req = requests_get(self.image_url, headers=headers, cookies=cookies)
+
+        with open(self.path, 'wb') as f:
+            f.write(req.content)
 
 
 
-
+    @classmethod
+    def set_phpsessid(cls, phpsessid):
+        cls.phpsessid = phpsessid
 
 
 class Author:
 
-    def __init__(self, userid, phpsessid):
-        self.userid = userid
+    def __init__(self, authorid, phpsessid):
+        self.authorid = authorid
         self.phpsessid = phpsessid
+        exist_or_create(pathjoin(setting.root_folder, authorid))
 
     def _get_illust(self, pn=1):
         while True:
-            req = requests_get(urls.ILLUST_LIST.format(self.userid, self.phpsessid, pn))
+            print('doing',self.authorid,'page',pn)
+            req = requests_get(urls.ILLUST_LIST.format(self.authorid, self.phpsessid, pn))
             if not req.text:
                 break
             filelike = StringIO(req.text)
@@ -129,6 +148,7 @@ class Author:
                 yield Item(i)
 
             pn += 1
+
 
     @sema_lock
     @put_data
@@ -195,6 +215,9 @@ class User:
             pickle.dump(self.phpsessid, f)
 
     def check_logined(self):
+        if self.phpsessid == '0':
+            return False
+
         req = requests_get(urls.TEST_LOGGED_URL.format(self.phpsessid))
         if req.text:
             return True
@@ -204,14 +227,15 @@ class User:
 
 class Downloader:
 
-    def __init__(self, phpsessid, *args):
+    def __init__(self, phpsessid, *author_list):
         self.phpsessid = phpsessid
-        self.author_list = args
+        self.author_list = author_list
         self.download_list = list()
         self.sema = threading.Semaphore(setting.THREAD_NUMS)
         self._deque = deque()
+        exist_or_create(setting.root_folder)
 
-    def get_download_list(self):
+    def _get_download_list(self):
         threading_list = []
         for author in self.author_list:
             a = Author(author, self.phpsessid)
@@ -222,6 +246,23 @@ class Downloader:
         [t.join() for t in threading_list]
         for lt in self._deque:
             self.download_list.extend(lt)
+
+
+
+
+    def download_all(self):
+        Item.set_phpsessid(self.phpsessid)
+        self._get_download_list()
+
+        threading_list = []
+        for item in self.download_list:
+            t = threading.Thread(target=item.download, args=(self.sema,))
+            threading_list.append(t)
+            t.start()
+
+        [t.join() for t in threading_list]
+
+
 
 
 
