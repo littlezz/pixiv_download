@@ -25,6 +25,9 @@ def retry_connect(retry_times, timeout):
             while True:
                 try:
                     ret = func(*args, timeout=timeout, **kwargs)
+                    if ret.status_code != 200:
+                        print(ret.status_code,ret.reason)
+                        raise Timeout
                 except Timeout:
 
                     try_times += 1
@@ -64,6 +67,17 @@ def put_data(func):
         _deque.append(ret_list)
 
     return wrapper
+
+
+def loop(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        while True:
+            ret = func(*args, **kwargs)
+            if ret:
+                break
+    return wrapper
+
 
 
 @retry_connect(setting.RETRY_TIMES, setting.TIMEOUT)
@@ -122,8 +136,6 @@ class Item:
 
         with open(self.path, 'wb') as f:
             f.write(req.content)
-
-
 
     @classmethod
     def set_phpsessid(cls, phpsessid):
@@ -224,6 +236,8 @@ class User:
         else:
             return False
 
+    def interactive(self):
+        pass
 
 class Downloader:
 
@@ -272,5 +286,5 @@ class Downloader:
 
 
 
-class DataBaseApi:
+class DatabaseApi:
     pass
