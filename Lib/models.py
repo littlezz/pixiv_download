@@ -180,6 +180,8 @@ class Author:
 
 class User:
 
+    support_operate = ('download',)
+
     def __init__(self):
         self.logined = False
         self.phpsessid_file = setting.PHPSEESID_FILE
@@ -236,8 +238,28 @@ class User:
         else:
             return False
 
+    @loop
     def interactive(self):
-        pass
+        parse = Parse(self.support_operate)
+        parse.parse(input(setting.input_prompt))
+
+
+class Parse:
+    patter = re.compile(r'[,;\s]\s*')
+    def __init__(self, support_key):
+        self._keys = support_key
+        self.status = False
+        self.operate = None
+        self.args = list()
+
+    def parse(self, st: str):
+        st = st.lower()
+        operate, *args = self.patter.split(st)
+
+        if operate not in self._keys:
+            return
+
+        
 
 class Downloader:
 

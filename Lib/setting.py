@@ -19,6 +19,9 @@ THREAD_NUMS = 4
 #root
 root_folder = 'collections'
 
+#user input prompt
+input_prompt = """输入操作和要下载的作者id,用空格隔开"""
+
 """
 maybe i can request http://www.pixiv.net/mypage.php and if content-length <50000 then i
 know i did not login
