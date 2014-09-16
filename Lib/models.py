@@ -259,7 +259,7 @@ class Parse:
         if operate not in self._keys:
             return
 
-        
+
 
 class Downloader:
 
