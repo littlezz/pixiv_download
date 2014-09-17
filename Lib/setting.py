@@ -20,7 +20,7 @@ THREAD_NUMS = 4
 root_folder = 'collections'
 
 #user input prompt
-input_prompt = """输入操作和要下载的作者id,用空格隔开"""
+input_prompt = """输入操作和要下载的作者id,用空格隔开\n"""
 
 """
 maybe i can request http://www.pixiv.net/mypage.php and if content-length <50000 then i

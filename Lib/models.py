@@ -16,6 +16,12 @@ import threading
 from collections import deque
 from Lib.urls import referer as referer_template
 from os.path import join as pathjoin
+import time
+
+
+
+def error():
+    pass
 
 def retry_connect(retry_times, timeout):
     def decorator(func):
@@ -180,7 +186,8 @@ class Author:
 
 class User:
 
-    support_operate = ('download',)
+    #只用在这里修改即可,在Parse和User在添加相应的方法
+    support_operate = ('download', 'exit')
 
     def __init__(self):
         self.logined = False
@@ -188,30 +195,35 @@ class User:
         self.phpsessid = self.read_phpsessid()
         self.req = None
 
-    def login(self):
+    @staticmethod
+    def _get_phpsessid(cookie):
+        for s in cookie.split(';'):
+            if s.startswith('PHPSESSID'):
+                return s[10:]
 
-        def get_phpsessid(cookie):
-            for s in cookie.split(';'):
-                if s.startswith('PHPSESSID'):
-                    return s[10:]
+    @loop
+    def _login(self):
+        username = input('username:\n')
+        password = getpass.getpass('password:\n')
+
+        payload = {'mode': 'login', 'return_to': '', 'pixiv_id': username, 'pass': password, 'skip': 1}
+        self.req = requests_post(urls.LOGIN, data=payload)
+        if self.req.url == urls.SUCCESS_REDIRECT:
+            self.phpsessid = self._get_phpsessid(self.req.request.headers['cookie'])
+            self.write_phpsessid()
+            self.login_ok()
+            return True
+        else:
+            print('username or password is wrong, please try again\n')
+            time.sleep(2)
+
+    def login(self):
 
         if self.check_logined():
             self.login_ok()
             return
 
-        while True:
-            username = input('username:\n')
-            password = getpass.getpass('password:\n')
-
-            payload = {'mode': 'login', 'return_to': '', 'pixiv_id': username, 'pass': password, 'skip': 1}
-            self.req = requests_post(urls.LOGIN, data=payload)
-            if self.req.url == urls.SUCCESS_REDIRECT:
-                self.phpsessid = get_phpsessid(self.req.request.headers['cookie'])
-                self.write_phpsessid()
-                self.login_ok()
-                break
-            else:
-                print('username or password is wrong, please try again\n')
+        self._login()
 
     def login_ok(self):
         self.logined = True
@@ -242,14 +254,28 @@ class User:
     def interactive(self):
         parse = Parse(self.support_operate)
         parse.parse(input(setting.input_prompt))
+        parse.user_sure()
+        if parse.status and parse.sure:
+            getattr(self, 'do_' + parse.operate)(parse.args)
+
+
+    def do_download(self, authors):
+        print('test download')
+
+    def do_exit(self, _):
+        print('bye')
+        exit(0)
+
 
 
 class Parse:
     patter = re.compile(r'[,;\s]\s*')
+
     def __init__(self, support_key):
         self._keys = support_key
         self.status = False
-        self.operate = None
+        self.sure = False
+        self.operate = ''
         self.args = list()
 
     def parse(self, st: str):
@@ -258,6 +284,44 @@ class Parse:
 
         if operate not in self._keys:
             return
+        check = getattr(self,'check_operate_' + operate)
+        self.status = check(args)
+        if self.status:
+            self.operate = operate
+            self.args = args
+
+    def user_sure(self):
+        if not self.status:
+            return
+        print('='*20)
+        print('operate: {}'.format(self.operate))
+        print('args: {}'.format(self.args))
+        _input = input('Is This Ok? [y/N]:')
+        if _input == 'y':
+            self.sure = True
+
+
+    def check_operate_download(self, authors):
+        if not authors:
+            error()
+            return False
+        try:
+            list(map(int, authors))
+
+        except ValueError:
+            error()
+            return False
+        else:
+            return True
+
+    def check_operate_exit(self, _):
+        """
+        do nothing
+        :param _: useless param
+        :return: return True
+        """
+        return True
+
 
 
 
