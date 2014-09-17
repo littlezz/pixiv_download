@@ -17,11 +17,20 @@ from collections import deque
 from Lib.urls import referer as referer_template
 from os.path import join as pathjoin
 import time
+from .prompt import Error, Prompt
 
 
 
-def error():
-    pass
+
+
+def threading_lock(lock):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            with lock:
+                return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 def retry_connect(retry_times, timeout):
     def decorator(func):
@@ -32,12 +41,12 @@ def retry_connect(retry_times, timeout):
                 try:
                     ret = func(*args, timeout=timeout, **kwargs)
                     if ret.status_code != 200:
-                        print(ret.status_code,ret.reason)
+                        error.connect_not_ok(ret.status_code,ret.reason)
                         raise Timeout
                 except Timeout:
 
                     try_times += 1
-                    print('faild ',try_times)
+                    error.reconnect(try_times)
                 else:
                     return ret
 
@@ -47,17 +56,7 @@ def retry_connect(retry_times, timeout):
         return wrapper
     return decorator
 
-"""
-def sema_lock(s=SEMA):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            with s:
-                return func(*args, **kwargs)
 
-        return wrapper
-    return decorator
-"""
 def sema_lock(func):
     @wraps(func)
     def wrapper(self,s, *args, **kwargs):
@@ -103,6 +102,10 @@ def exist_or_create(path):
         os.mkdir(path)
 
 
+error = Error()
+prompt = Prompt()
+
+
 
 
 class Item:
@@ -133,6 +136,7 @@ class Item:
             self.type = 'animation'
 
     @sema_lock
+    @prompt.prompt
     def download(self):
         if os.path.exists(self.path):
             return
@@ -157,7 +161,6 @@ class Author:
 
     def _get_illust(self, pn=1):
         while True:
-            print('doing',self.authorid,'page',pn)
             req = requests_get(urls.ILLUST_LIST.format(self.authorid, self.phpsessid, pn))
             if not req.text:
                 break
@@ -170,6 +173,7 @@ class Author:
 
     @sema_lock
     @put_data
+    @prompt.prompt
     def get_illusts(self, support_types=None):
         """
         在这里和数据库对比过滤已经下载过的.
@@ -178,7 +182,7 @@ class Author:
         """
         if not support_types:
             support_types = ('image',)
-        print('support',support_types)
+
         return list(item for item in self._get_illust() if item.type in support_types)
 
 
@@ -214,7 +218,7 @@ class User:
             self.login_ok()
             return True
         else:
-            print('username or password is wrong, please try again\n')
+            error.login_fail()
             time.sleep(2)
 
     def login(self):
@@ -283,8 +287,9 @@ class Parse:
         operate, *args = self.patter.split(st)
 
         if operate not in self._keys:
+            error.unavailble_operate(operate)
             return
-        check = getattr(self,'check_operate_' + operate)
+        check = getattr(self, 'check_operate_' + operate)
         self.status = check(args)
         if self.status:
             self.operate = operate
@@ -303,13 +308,13 @@ class Parse:
 
     def check_operate_download(self, authors):
         if not authors:
-            error()
+            error.unavailble_args()
             return False
+
         try:
             list(map(int, authors))
-
         except ValueError:
-            error()
+            error.unavailble_args()
             return False
         else:
             return True
