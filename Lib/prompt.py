@@ -5,11 +5,22 @@ from .setting import connect_fail_prompt_bound
 from random import choice
 from functools import wraps
 from .decorators import threading_lock
+from shutil import get_terminal_size
 
 
 error_lock = Lock()
 prompt_lock = Lock()
 prompt_detect_error_lock = Lock()
+terminal_width, _ = get_terminal_size()
+
+
+def clear_output(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        print(' ' * terminal_width, end='\r')
+        return func(*args, **kwargs)
+    return wrapper
+
 
 class Prompt:
 
@@ -20,6 +31,12 @@ class Prompt:
         self.init_texts()
         self.randomtext()
         self.error_times = 0
+        self.terminal_size = 50
+        self.get_terminal_size()
+
+    def get_terminal_size(self):
+        c, l = get_terminal_size()
+        self.terminal_size = c
 
     def prompt(self, func):
         @wraps(func)
@@ -30,6 +47,7 @@ class Prompt:
         return wrapper
 
     @threading_lock(prompt_lock)
+    @clear_output
     def _prompt(self):
         self.current += 1
         print(format(self.current / self.total, '<8.2%') + self.nowtext, end='\r')
@@ -51,24 +69,27 @@ class Prompt:
                 raise e
         return wrapper
 
+    @clear_output
     def report(self, title):
-        print(format('report', '-^25'))
+        print(format('report', '-^{}'.format(self.terminal_size)))
         print(title)
         print('总计{},成功{},失败{}'.format(self.total, self.total - self.error_times, self.error_times))
-        print('-'*25)
+        print('-' * self.terminal_size)
 
 
     def init_texts(self):
         self.texts = (
-            '正在检查线路',
+            '正在检查线路安全',
             '正在确保控制器',
             '重载思考模型',
-            '神经连接断开率超过30%!',
+            '正在检查插入栓深度',
             '正在检查裙子里面的不明突起',
-            '同步率超过50%!',
-            'AT力场全展!',
-            'oh~ fucking kawayi! what?!  boy!! yoooooooo!!',
-            'WARING! 裙子下面是小♂♂!',
+            '正在解决自涉悖论',
+            '正在展开AT力场',
+            '正在确保线路057',
+            '正在启动过载保护',
+            '魔力控制在预期范围内',
+
 
         )
 
@@ -85,8 +106,9 @@ class Prompt:
         print('正在验证身份')
 
     @staticmethod
+    @clear_output
     def operate_user_sure(operate, t):
-        print('='*25)
+        print('=' * terminal_width)
         print('operate: {}'.format(operate))
         print('args: {}'.format(t))
 
@@ -101,6 +123,7 @@ class Error:
         self._connect_fail = 0
 
     @threading_lock(error_lock)
+    @clear_output
     def reconnect(self, try_times):
         print('连接断开,正在尝试第{}次重连'.format(try_times))
         self._connect_fail += 1
@@ -119,5 +142,6 @@ class Error:
         print('username or password is wrong, please try again')
         print('静默两秒')
 
+    @clear_output
     def connect_not_ok(self, status_code, reason):
         print('访问失败,错误代号{},原因{}'.format(status_code, reason))

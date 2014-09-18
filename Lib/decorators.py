@@ -4,6 +4,7 @@ from functools import wraps
 from requests import Timeout
 import socket
 
+
 timeouts = (Timeout, socket.timeout)
 
 

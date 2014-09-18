@@ -2,5 +2,5 @@
 *.~
 *.html
 pixiv分析.txt
-data/
+data/phpsessid.pickle
 collections/
