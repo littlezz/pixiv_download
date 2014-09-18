@@ -3,94 +3,36 @@ __author__ = 'zz'
 import getpass
 from requests import get as _requests_get
 from requests import post as _requests_post
-from Lib import urls
+from . import urls
 import pickle
 import os
 from io import StringIO
-from Lib import setting
+from . import setting
 from csv import reader
-from functools import wraps
-from requests.exceptions import Timeout
 import re
 import threading
 from collections import deque
-from Lib.urls import referer as referer_template
+from .urls import referer as referer_template
 from os.path import join as pathjoin
 import time
 from .prompt import Error, Prompt
+from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout
 
 
 
 
 
-def threading_lock(lock):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            with lock:
-                return func(*args, **kwargs)
-        return wrapper
-    return decorator
 
-def retry_connect(retry_times, timeout):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            try_times = 0
-            while True:
-                try:
-                    ret = func(*args, timeout=timeout, **kwargs)
-                    if ret.status_code != 200:
-                        error.connect_not_ok(ret.status_code,ret.reason)
-                        raise Timeout
-                except Timeout:
-
-                    try_times += 1
-                    error.reconnect(try_times)
-                else:
-                    return ret
-
-                if try_times >= retry_times:
-                    raise Timeout
-
-        return wrapper
-    return decorator
+error = Error()
+prompt = Prompt()
 
 
-def sema_lock(func):
-    @wraps(func)
-    def wrapper(self,s, *args, **kwargs):
-        with s:
-            return func(self, *args, **kwargs)
-
-    return wrapper
-
-def put_data(func):
-    @wraps(func)
-    def wrapper(self, _deque, *args, **kwargs):
-        ret_list = func(self, *args, **kwargs)
-        _deque.append(ret_list)
-
-    return wrapper
-
-
-def loop(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        while True:
-            ret = func(*args, **kwargs)
-            if ret:
-                break
-    return wrapper
-
-
-
-@retry_connect(setting.RETRY_TIMES, setting.TIMEOUT)
+@retry_connect(setting.RETRY_TIMES, setting.TIMEOUT, error)
 def requests_get(url, **kwargs):
     return _requests_get(url, **kwargs)
 
 
-@retry_connect(setting.RETRY_TIMES, setting.TIMEOUT)
+@retry_connect(setting.RETRY_TIMES, setting.TIMEOUT, error)
 def requests_post(url, data=None, **kwargs):
     return _requests_post(url, data, **kwargs)
 
@@ -100,10 +42,6 @@ def requests_post(url, data=None, **kwargs):
 def exist_or_create(path):
     if not os.path.exists(path):
         os.mkdir(path)
-
-
-error = Error()
-prompt = Prompt()
 
 
 
@@ -137,6 +75,8 @@ class Item:
 
     @sema_lock
     @prompt.prompt
+    @resolve_timeout(False)
+    @prompt.detect_error
     def download(self):
         if os.path.exists(self.path):
             return
@@ -146,6 +86,8 @@ class Item:
 
         with open(self.path, 'wb') as f:
             f.write(req.content)
+
+        return self.illust_id
 
     @classmethod
     def set_phpsessid(cls, phpsessid):
@@ -174,6 +116,8 @@ class Author:
     @sema_lock
     @put_data
     @prompt.prompt
+    @resolve_timeout([])
+    @prompt.detect_error
     def get_illusts(self, support_types=None):
         """
         在这里和数据库对比过滤已经下载过的.
@@ -227,6 +171,7 @@ class User:
             self.login_ok()
             return
 
+        Prompt.relogin()
         self._login()
 
     def login_ok(self):
@@ -245,6 +190,8 @@ class User:
             pickle.dump(self.phpsessid, f)
 
     def check_logined(self):
+        Prompt.session_login_ing()
+
         if self.phpsessid == '0':
             return False
 
@@ -264,7 +211,8 @@ class User:
 
 
     def do_download(self, authors):
-        print('test download')
+        download = Downloader(self.phpsessid, authors)
+        download.download_all()
 
     def do_exit(self, _):
         print('bye')
@@ -298,9 +246,7 @@ class Parse:
     def user_sure(self):
         if not self.status:
             return
-        print('='*20)
-        print('operate: {}'.format(self.operate))
-        print('args: {}'.format(self.args))
+        Prompt.operate_user_sure(self.operate, self.args)
         _input = input('Is This Ok? [y/N]:')
         if _input == 'y':
             self.sure = True
@@ -332,7 +278,7 @@ class Parse:
 
 class Downloader:
 
-    def __init__(self, phpsessid, *author_list):
+    def __init__(self, phpsessid, author_list):
         self.phpsessid = phpsessid
         self.author_list = author_list
         self.download_list = list()
@@ -342,6 +288,8 @@ class Downloader:
 
     def _get_download_list(self):
         threading_list = []
+        prompt.reset(len(self.author_list))
+
         for author in self.author_list:
             a = Author(author, self.phpsessid)
             t = threading.Thread(target=a.get_illusts, args=(self.sema, self._deque))
@@ -352,13 +300,15 @@ class Downloader:
         for lt in self._deque:
             self.download_list.extend(lt)
 
+        prompt.report('获取作者列表')
+
 
 
 
     def download_all(self):
         Item.set_phpsessid(self.phpsessid)
         self._get_download_list()
-
+        prompt.reset(len(self.download_list))
         threading_list = []
         for item in self.download_list:
             t = threading.Thread(target=item.download, args=(self.sema,))
@@ -367,7 +317,7 @@ class Downloader:
 
         [t.join() for t in threading_list]
 
-
+        prompt.report('下载图片')
 
 
 

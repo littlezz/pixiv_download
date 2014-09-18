@@ -1,10 +1,7 @@
 __author__ = 'zz'
 
 
-from  Lib.models import User,Author,Downloader
-
-
-print(__file__)
+from  Lib.models import User
 
 if __name__ == '__main__':
     user = User()
