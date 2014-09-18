@@ -64,6 +64,12 @@ class Prompt:
             '正在确保控制器',
             '重载思考模型',
             '神经连接断开率超过30%!',
+            '正在检查裙子里面的不明突起',
+            '同步率超过50%!',
+            'AT力场全展!',
+            'oh~ fucking kawayi! what?!  boy!! yoooooooo!!',
+            'WARING! 裙子下面是小♂♂!',
+
         )
 
     def randomtext(self):
