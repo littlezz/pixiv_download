@@ -17,7 +17,7 @@ from os.path import join as pathjoin
 import time
 from .prompt import Error, Prompt
 from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout
-
+import sqlite3
 
 
 
@@ -74,8 +74,9 @@ class Item:
             self.type = 'animation'
 
     @sema_lock
+    @put_data
     @prompt.prompt
-    @resolve_timeout(False)
+    @resolve_timeout(None)
     @prompt.detect_error
     def download(self):
         if os.path.exists(self.path):
@@ -87,7 +88,7 @@ class Item:
         with open(self.path, 'wb') as f:
             f.write(req.content)
 
-        return self.illust_id
+        return self.author_id, self.illust_id
 
     @classmethod
     def set_phpsessid(cls, phpsessid):
@@ -212,11 +213,16 @@ class User:
 
     def do_download(self, authors):
         download = Downloader(self.phpsessid, authors)
-        download.download_all()
+        download.download()
+        prompt.report('下载图片')
 
     def do_exit(self, _):
         print('bye')
         exit(0)
+
+    def do_add(self, authors):
+        print('add test')
+        pass
 
 
 
@@ -273,8 +279,9 @@ class Parse:
         """
         return True
 
-
-
+    def check_operate_add(self, authors):
+        # 和download 的检查是相同的
+        return self.check_operate_download(authors)
 
 class Downloader:
 
@@ -282,11 +289,12 @@ class Downloader:
         self.phpsessid = phpsessid
         self.author_list = author_list
         self.download_list = list()
+        self.complete_info = deque()
         self.sema = threading.Semaphore(setting.THREAD_NUMS)
         self._deque = deque()
         exist_or_create(setting.root_folder)
 
-    def _get_download_list(self):
+    def _get_item_list(self):
         threading_list = []
         prompt.reset(len(self.author_list))
 
@@ -304,20 +312,24 @@ class Downloader:
 
 
 
-
-    def download_all(self):
+    def _threading_download(self):
         Item.set_phpsessid(self.phpsessid)
-        self._get_download_list()
-        prompt.reset(len(self.download_list))
         threading_list = []
         for item in self.download_list:
-            t = threading.Thread(target=item.download, args=(self.sema,))
+            t = threading.Thread(target=item.download, args=(self.sema, self.complete_info))
             threading_list.append(t)
             t.start()
 
         [t.join() for t in threading_list]
 
-        prompt.report('下载图片')
+    def download(self, download_list=None):
+        if download_list:
+            self.download_list = download_list
+        else:
+            self._get_item_list()
+        prompt.reset(len(self.download_list))
+        self._threading_download()
+
 
 
 
@@ -328,4 +340,19 @@ class Downloader:
 
 
 class DatabaseApi:
-    pass
+    def __init__(self, dbfile):
+        self.conn = sqlite3.connect(dbfile)
+
+    def pull_authors(self):
+        with self.conn:
+            cur = self.conn.cursor()
+            cur.execute('select * from Authors')
+            return cur.fetchall()
+
+    def create_database(self):
+        with self.conn:
+            cur = self.conn.cursor()
+            cur.executescript("""
+                CREATE TABLE Authors(id INTEGER PRIMARY KEY );
+                CREATE TABLE Illusts(author INTEGER , id INTEGER PRIMARY KEY );
+            """)
