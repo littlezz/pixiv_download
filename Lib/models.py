@@ -140,6 +140,7 @@ class User:
     support_operate = ('download', 'exit', 'add')
 
     def __init__(self):
+        self.database = DatabaseApi()
         self.logined = False
         self.phpsessid_file = setting.PHPSEESID_FILE
         self.phpsessid = self.read_phpsessid()
@@ -258,19 +259,25 @@ class Parse:
         if _input == 'y':
             self.sure = True
 
+    @staticmethod
+    def _validated_authors(authors):
+        """
+        not empty, can int() for each item
+        :return:
+        """
+        if authors:
+            try:
+                list(map(int,authors))
+            except ValueError:
+                pass
+            else:
+                return True
+
+        error.unavailble_args()
+        return False
 
     def check_operate_download(self, authors):
-        if not authors:
-            error.unavailble_args()
-            return False
-
-        try:
-            list(map(int, authors))
-        except ValueError:
-            error.unavailble_args()
-            return False
-        else:
-            return True
+        return self._validated_authors(authors)
 
     def check_operate_exit(self, _):
         """
@@ -281,8 +288,10 @@ class Parse:
         return True
 
     def check_operate_add(self, authors):
-        # 和download 的检查是相同的
+
         return self.check_operate_download(authors)
+
+
 
 class Downloader:
 
@@ -336,10 +345,10 @@ class Downloader:
 
 
 class DatabaseApi:
-    dbfile = 'testdb.sqlite3'
+    dbfile = setting.DATABASE
 
     def __init__(self):
-        if os.path.exists(self.dbfile):
+        if not os.path.exists(self.dbfile):
             self.create_database(self.dbfile)
         self.conn = sqlite3.connect(self.dbfile)
 
@@ -373,17 +382,20 @@ class DatabaseApi:
                 cur.execute('INSERT INTO Authors values (?)', (i,))
 
     def push_record(self, data):
+        """
+        :param data:[(authors_id:int,illust_id:int)]
+        :return: None
+        """
         with self.conn:
             cur = self.conn.cursor()
-            for i in data:
-                cur.execute('INSERT INTO Illusts VALUES (?,?)',i)
+            cur.executemany('INSERT INTO Illusts VALUES (?,?)',data)
 
     def delete_authors(self, authors_id):
         with self.conn:
             cur = self.conn.cursor()
             for i in authors_id:
                 cur.execute('DELETE FROM Authors WHERE id=?',(i,))
-                cur.execute('DELETE FROM Authors WHERE author=?',(i,))
+                cur.execute('DELETE FROM Illusts WHERE author=?',(i,))
 
 
 
