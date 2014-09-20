@@ -4,3 +4,4 @@
 pixiv分析.txt
 data/phpsessid.pickle
 collections/
+*.sqlite3

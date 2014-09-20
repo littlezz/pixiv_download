@@ -8,6 +8,17 @@ import socket
 timeouts = (Timeout, socket.timeout)
 
 
+def contain_type(type_=None):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            ret = func(*args, **kwargs)
+            if type:
+                return list(type_(i) for i in ret)
+        return wrapper
+    return decorator
+
+
 def threading_lock(lock):
     def decorator(func):
         @wraps(func)
@@ -73,7 +84,7 @@ def loop(func):
 
 def resolve_timeout(replace_value):
     def decorator(func):
-        wraps(func)
+        @wraps(func)
         def wrapper(*args, **kwargs):
             try:
                 return func(*args, **kwargs)

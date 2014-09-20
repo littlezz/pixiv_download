@@ -16,7 +16,7 @@ from .urls import referer as referer_template
 from os.path import join as pathjoin
 import time
 from .prompt import Error, Prompt
-from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout
+from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout, contain_type
 import sqlite3
 
 
@@ -77,6 +77,7 @@ class Item:
     @put_data
     @prompt.prompt
     @resolve_timeout(None)
+    @contain_type(int)
     @prompt.detect_error
     def download(self):
         if os.path.exists(self.path):
@@ -136,7 +137,7 @@ class Author:
 class User:
 
     #只用在这里修改即可,在Parse和User在添加相应的方法
-    support_operate = ('download', 'exit')
+    support_operate = ('download', 'exit', 'add')
 
     def __init__(self):
         self.logined = False
@@ -334,25 +335,57 @@ class Downloader:
 
 
 
-
-
-
-
-
 class DatabaseApi:
-    def __init__(self, dbfile):
-        self.conn = sqlite3.connect(dbfile)
+    dbfile = 'testdb.sqlite3'
 
+    def __init__(self):
+        if os.path.exists(self.dbfile):
+            self.create_database(self.dbfile)
+        self.conn = sqlite3.connect(self.dbfile)
+
+    @contain_type(str)
     def pull_authors(self):
         with self.conn:
             cur = self.conn.cursor()
             cur.execute('select * from Authors')
-            return cur.fetchall()
+            return (i[0] for i in cur.fetchall())
 
-    def create_database(self):
+    @contain_type(str)
+    def get_illusts(self, author):
         with self.conn:
             cur = self.conn.cursor()
+            cur.execute('SELECT id FROM Illusts WHERE author=?', (author,))
+            return (i[0] for i in cur.fetchall())
+
+    @staticmethod
+    def create_database(dbfile):
+        with sqlite3.connect(dbfile) as conn:
+            cur = conn.cursor()
             cur.executescript("""
                 CREATE TABLE Authors(id INTEGER PRIMARY KEY );
                 CREATE TABLE Illusts(author INTEGER , id INTEGER PRIMARY KEY );
             """)
+
+    def add_authors(self, authors_id):
+        with self.conn:
+            cur = self.conn.cursor()
+            for i in authors_id:
+                cur.execute('INSERT INTO Authors values (?)', (i,))
+
+    def push_record(self, data):
+        with self.conn:
+            cur = self.conn.cursor()
+            for i in data:
+                cur.execute('INSERT INTO Illusts VALUES (?,?)',i)
+
+    def delete_authors(self, authors_id):
+        with self.conn:
+            cur = self.conn.cursor()
+            for i in authors_id:
+                cur.execute('DELETE FROM Authors WHERE id=?',(i,))
+                cur.execute('DELETE FROM Authors WHERE author=?',(i,))
+
+
+
+
+
