@@ -137,7 +137,7 @@ class Author:
 class User:
 
     #只用在这里修改即可,在Parse和User在添加相应的方法
-    support_operate = ('download', 'exit', 'add')
+    support_operate = ('download', 'exit', 'add', 'del', 'list')
 
     def __init__(self):
         self.database = DatabaseApi()
@@ -206,7 +206,7 @@ class User:
 
     @loop
     def interactive(self):
-        parse = Parse(self.support_operate)
+        parse = Parse(self.support_operate, self.database)
         parse.parse(input(setting.input_prompt))
         parse.user_sure()
         if parse.status and parse.sure:
@@ -223,15 +223,21 @@ class User:
         exit(0)
 
     def do_add(self, authors):
-        print('add test')
-        pass
+        self.database.add_authors(authors)
 
+    def do_del(self, authors):
+        self.database.delete_authors(authors)
+
+    def do_list(self, _):
+        exist_authors = self.database.pull_authors()
+        prompt.list_authors(exist_authors)
 
 
 class Parse:
     patter = re.compile(r'[,;\s]\s*')
 
-    def __init__(self, support_key):
+    def __init__(self, support_key, database):
+        self.database = database
         self._keys = support_key
         self.status = False
         self.sure = False
@@ -289,7 +295,36 @@ class Parse:
 
     def check_operate_add(self, authors):
 
-        return self.check_operate_download(authors)
+        if self._validated_authors(authors):
+            exists = []
+            exist_authors = self.database.pull_authors()
+            for i in exist_authors:
+                if i in authors:
+                    exists.append(i)
+
+            if exists:
+                error.exist_authors(exists)
+                return False
+            else:
+                return True
+
+    def check_operate_del(self, authors):
+        if self._validated_authors(authors):
+            not_exists = []
+            exist_authors = self.database.pull_authors()
+            for i in authors:
+                if i not in exist_authors:
+                    not_exists.append(i)
+
+            if not_exists:
+                error.authors_not_exist(not_exists)
+                return False
+            else:
+                return True
+
+    def check_operate_list(self, _):
+        return True
+
 
 
 
@@ -376,6 +411,10 @@ class DatabaseApi:
             """)
 
     def add_authors(self, authors_id):
+        """
+        :param authors_id: list,里面的类型应该为可以转话为int的类型,比如纯数字str或者int.所以不用特别转为int,保证纯数字即可.
+        :return:
+        """
         with self.conn:
             cur = self.conn.cursor()
             for i in authors_id:

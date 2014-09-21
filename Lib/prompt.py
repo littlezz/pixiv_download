@@ -116,6 +116,11 @@ class Prompt:
     def relogin():
         print('身份验证失败,请登陆')
 
+    @staticmethod
+    def list_authors(authors):
+        print('加入数据库的作者id:')
+        for i in authors:
+            print(i)
 
 
 class Error:
@@ -145,3 +150,9 @@ class Error:
     @clear_output
     def connect_not_ok(self, status_code, reason):
         print('访问失败,错误代号{},原因{}'.format(status_code, reason))
+
+    def exist_authors(self, authors):
+        print(' '.join(authors),' 已经存在!')
+
+    def authors_not_exist(self, authors):
+        print(' '.join(authors),' 不存在!')
