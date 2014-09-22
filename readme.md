@@ -4,20 +4,41 @@ use
 ===========
 打开程序后会进入一个简单的交互式命令行,下载好的在程序目录的collections文件夹内
 
-login
+`login`
 --------
 登陆时输入的密码不会显示,一股脑输入按回车就好
 
+`list`
+------------
+list authors' id that in database
 
-download
+`illusts`
+-------------
+list illusts' id that in database
+
+
+`add [author_id,]`
+-----------
+将作者添加到数据库并下载其作品.
+
+`del [author_id,]`
+--------------------
+删除作者id,并将有关下载记录移除.
+
+
+`download [author_id,]`
 --------------
-在交互命令行里输入 download 后接要下载的作者id 输入以空格隔开.
+在交互命令行里输入 `download` 后接要下载的作者id 输入以空格隔开.
 
-exit
+`exit`
 ---------
 输入 exit 退出程序.
 
 
+Required
+================
+- python3 
+- requests >= 2.3.0
 
 感想
 ==============
@@ -57,8 +78,9 @@ To Do
 - 模块话,解决互相调用的问题 -------->done
 - 完成数据库操作api  ----------->done
 - 完成add,del指令的验证和对数据库的修改 ---------->done
-- 写完add,del
+- 写完add,del ---------------->done
 - 在错误的提示加上前缀
+- support update 
 
 update
 ============
@@ -77,8 +99,9 @@ update
 - 写一些数据库操作api, Downloader的方法重新组织了一下-------------------9-19
 - 数据库操作 -------------->9-20
 - 修正数据库api的错误 ---------->9-20
-- 添加了对add,del,list 操作的检查.
+- 添加了对add,del,list 操作的检查. --------------->9-21
+- support `add` , and `del`, `list`, `illusts`  -------------->9-22
 
 version
 ==============
-download only beta 1.0
+~~download only beta 1.0~~

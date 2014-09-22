@@ -96,10 +96,11 @@ class Prompt:
     def randomtext(self):
         self.nowtext = choice(self.texts)
 
-    def reset(self, total):
+    def reset(self, total, prompt):
         self.current = 0
         self.total = total
         self.error_times = 0
+        print(prompt)
 
     @staticmethod
     def session_login_ing():
@@ -121,6 +122,14 @@ class Prompt:
         print('加入数据库的作者id:')
         for i in authors:
             print(i)
+
+    def list_illusts(self, illusts):
+        left = format('{}', '<15')
+        right = format('| {}', '<15')
+
+        print(left.format('作者id'), right.format('作品id'))
+        for authorid, illustid in illusts:
+            print(left.format(authorid), right.format(illustid))
 
 
 class Error:

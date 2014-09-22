@@ -80,14 +80,14 @@ class Item:
     @contain_type(int)
     @prompt.detect_error
     def download(self):
-        if os.path.exists(self.path):
-            return
-        headers = {'referer': referer_template.format(self.illust_id)}
-        cookies = {'PHPSESSID': self.phpsessid}
-        req = requests_get(self.image_url, headers=headers, cookies=cookies)
+        if not os.path.exists(self.path):
 
-        with open(self.path, 'wb') as f:
-            f.write(req.content)
+            headers = {'referer': referer_template.format(self.illust_id)}
+            cookies = {'PHPSESSID': self.phpsessid}
+            req = requests_get(self.image_url, headers=headers, cookies=cookies)
+
+            with open(self.path, 'wb') as f:
+                f.write(req.content)
 
         return self.author_id, self.illust_id
 
@@ -137,10 +137,11 @@ class Author:
 class User:
 
     #只用在这里修改即可,在Parse和User在添加相应的方法
-    support_operate = ('download', 'exit', 'add', 'del', 'list')
+    support_operate = ('download', 'exit', 'add', 'del', 'list', 'illusts')
 
     def __init__(self):
         self.database = DatabaseApi()
+        self.downloading_item = list()
         self.logined = False
         self.phpsessid_file = setting.PHPSEESID_FILE
         self.phpsessid = self.read_phpsessid()
@@ -217,13 +218,27 @@ class User:
         download = Downloader(self.phpsessid, authors)
         download.download()
         prompt.report('下载图片')
+        self.downloading_item = download.complete_info
 
     def do_exit(self, _):
         print('bye')
+        self.database.conn.close()
         exit(0)
 
+    """
+    def do_update(self, authors):
+        exist_illusts = set()
+        for i in authors:
+            exist_illusts.add(set(self.database.get_illusts(i)))
+        download = Downloader(self.phpsessid, authors)
+        download.get_item_list()
+        = set()
+    """
     def do_add(self, authors):
         self.database.add_authors(authors)
+        self.do_download(authors)
+        self.database.push_record(self.downloading_item)
+
 
     def do_del(self, authors):
         self.database.delete_authors(authors)
@@ -232,6 +247,9 @@ class User:
         exist_authors = self.database.pull_authors()
         prompt.list_authors(exist_authors)
 
+    def do_illusts(self, _):
+        illusts = self.database.pull_all_illusts()
+        prompt.list_illusts(illusts)
 
 class Parse:
     patter = re.compile(r'[,;\s]\s*')
@@ -325,7 +343,8 @@ class Parse:
     def check_operate_list(self, _):
         return True
 
-
+    def check_operate_illusts(self, _):
+        return True
 
 
 class Downloader:
@@ -334,14 +353,14 @@ class Downloader:
         self.phpsessid = phpsessid
         self.author_list = author_list
         self.download_list = list()
-        self.complete_info = deque()
+        self.complete_info = deque() # download return (authorid, illustid)
         self.sema = threading.Semaphore(setting.THREAD_NUMS)
         self._deque = deque()
         exist_or_create(setting.root_folder)
 
-    def _get_item_list(self):
+    def get_item_list(self):
         threading_list = []
-        prompt.reset(len(self.author_list))
+        prompt.reset(len(self.author_list), '正在获取作者作品列表')
 
         for author in self.author_list:
             a = Author(author, self.phpsessid)
@@ -371,8 +390,8 @@ class Downloader:
         if download_list:
             self.download_list = download_list
         else:
-            self._get_item_list()
-        prompt.reset(len(self.download_list))
+            self.get_item_list()
+        prompt.reset(len(self.download_list), '正在下载')
         self._threading_download()
 
 
@@ -436,7 +455,10 @@ class DatabaseApi:
                 cur.execute('DELETE FROM Authors WHERE id=?',(i,))
                 cur.execute('DELETE FROM Illusts WHERE author=?',(i,))
 
-
-
+    def pull_all_illusts(self):
+        with self.conn:
+            cur = self.conn.cursor()
+            cur.execute('SELECT * FROM Illusts ORDER BY author')
+            return list(cur.fetchall())
 
 
