@@ -4,33 +4,45 @@ use
 ===========
 打开程序后会进入一个简单的交互式命令行,下载好的在程序目录的collections文件夹内
 
-`login`
---------
-登陆时输入的密码不会显示,一股脑输入按回车就好
 
-`list`
+quickstart
+------------
+- 打开程序,登陆,输入密码是不会显示符号的
+- 输入`add` 后面跟作者的id,多个id空格隔开,随后作品会自动下载
+- 输入`update` 自动更新之前添加过的作者的作品
+- `del` + 作者id ,将作者从数据移除(不会删除图片)
+- `exit` 退出程序
+
+* * *
+其余指令
+
+
+list
 ------------
 list authors' id that in database
 
-`illusts`
+illusts
 -------------
 list illusts' id that in database
 
 
-`add [author_id,]`
+add [author_id,]
 -----------
-将作者添加到数据库并下载其作品.
+将作者添加到数据库并下载其作品,随后可用update指令保持数据库中作者的作品更新
 
-`del [author_id,]`
+del [author_id,]
 --------------------
 删除作者id,并将有关下载记录移除.
 
+update [author_id,]
+------------
+检查并更新数据库中作者的作品
 
-`download [author_id,]`
+download [author_id,]
 --------------
 在交互命令行里输入 `download` 后接要下载的作者id 输入以空格隔开.
 
-`exit`
+exit
 ---------
 输入 exit 退出程序.
 
@@ -63,7 +75,7 @@ step
 
 -  login success ---------------done
 -  download all image from illustor with threading ---------->done
--  support auto check and update
+-  support auto check and update ------------->done!
 -  support download manga
 -  support download animation and turn to gif format
 
@@ -80,7 +92,10 @@ To Do
 - 完成add,del指令的验证和对数据库的修改 ---------->done
 - 写完add,del ---------------->done
 - 在错误的提示加上前缀
-- support update 
+- support update ----------->done
+- 数据库中保存作者名字
+- 在readme 中添加图片
+- beta 2.0
 
 update
 ============
@@ -101,6 +116,7 @@ update
 - 修正数据库api的错误 ---------->9-20
 - 添加了对add,del,list 操作的检查. --------------->9-21
 - support `add` , and `del`, `list`, `illusts`  -------------->9-22
+- support `update` ----------------->9-23
 
 version
 ==============

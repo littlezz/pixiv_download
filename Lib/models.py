@@ -18,9 +18,8 @@ import time
 from .prompt import Error, Prompt
 from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout, contain_type
 import sqlite3
-
-
-
+import logging
+logging.basicConfig(level=logging.WARNING, format='%(funcName)s: %(message)s')
 
 
 error = Error()
@@ -37,23 +36,20 @@ def requests_post(url, data=None, **kwargs):
     return _requests_post(url, data, **kwargs)
 
 
-
-
 def exist_or_create(path):
     if not os.path.exists(path):
         os.mkdir(path)
 
 
-
-
 class Item:
-    patter=re.compile(r'(.*?)mobile')
+    patter = re.compile(r'(.*?)mobile')
 
     def __init__(self, list_):
         self._list = list_
         self.illust_id = list_[0]
         self.author_id = list_[1]
-        self.extensions =  list_[2]
+        self.extensions = list_[2]
+        self.title = list_[3]
         self.mobile_image = list_[9]
         self.page = list_[19]
         self.type = 'image'
@@ -77,7 +73,6 @@ class Item:
     @put_data
     @prompt.prompt
     @resolve_timeout(None)
-    @contain_type(int)
     @prompt.detect_error
     def download(self):
         if not os.path.exists(self.path):
@@ -89,7 +84,7 @@ class Item:
             with open(self.path, 'wb') as f:
                 f.write(req.content)
 
-        return self.author_id, self.illust_id
+        return self.author_id, self.illust_id, self.title
 
     @classmethod
     def set_phpsessid(cls, phpsessid):
@@ -137,11 +132,10 @@ class Author:
 class User:
 
     #只用在这里修改即可,在Parse和User在添加相应的方法
-    support_operate = ('download', 'exit', 'add', 'del', 'list', 'illusts')
+    support_operate = ('download', 'exit', 'add', 'del', 'list', 'illusts', 'update')
 
     def __init__(self):
         self.database = DatabaseApi()
-        self.downloading_item = list()
         self.logined = False
         self.phpsessid_file = setting.PHPSEESID_FILE
         self.phpsessid = self.read_phpsessid()
@@ -216,28 +210,34 @@ class User:
 
     def do_download(self, authors):
         download = Downloader(self.phpsessid, authors)
-        download.download()
-        prompt.report('下载图片')
-        self.downloading_item = download.complete_info
+        return download.download()
+
 
     def do_exit(self, _):
         print('bye')
         self.database.conn.close()
         exit(0)
 
-    """
+
     def do_update(self, authors):
-        exist_illusts = set()
-        for i in authors:
-            exist_illusts.add(set(self.database.get_illusts(i)))
+        if not authors:
+            authors = self.database.pull_authors()
+        exist_illusts = set(illust for author in authors for illust in self.database.get_illusts(author))
         download = Downloader(self.phpsessid, authors)
         download.get_item_list()
-        = set()
-    """
+        update_illusts = list(i for i in download.download_list if i.illust_id not in exist_illusts)
+        if update_illusts:
+            update_info = download.download(update_illusts)
+            self.database.push_record(update_info)
+        else:
+            update_info = list()
+        update_info = sorted(update_info)
+        prompt.list_update(update_info)
+
     def do_add(self, authors):
         self.database.add_authors(authors)
-        self.do_download(authors)
-        self.database.push_record(self.downloading_item)
+        downloading_item = self.do_download(authors)
+        self.database.push_record(downloading_item)
 
 
     def do_del(self, authors):
@@ -250,6 +250,7 @@ class User:
     def do_illusts(self, _):
         illusts = self.database.pull_all_illusts()
         prompt.list_illusts(illusts)
+
 
 class Parse:
     patter = re.compile(r'[,;\s]\s*')
@@ -346,6 +347,11 @@ class Parse:
     def check_operate_illusts(self, _):
         return True
 
+    def check_operate_update(self, authors):
+        if authors:
+            return self._validated_authors(authors)
+        else:
+            return True
 
 class Downloader:
 
@@ -387,14 +393,19 @@ class Downloader:
         [t.join() for t in threading_list]
 
     def download(self, download_list=None):
+        """
+        :param download_list:
+        :return: comelete_info
+        """
         if download_list:
             self.download_list = download_list
         else:
             self.get_item_list()
         prompt.reset(len(self.download_list), '正在下载')
         self._threading_download()
+        prompt.report('下载图片')
 
-
+        return self.complete_info
 
 
 
@@ -426,7 +437,7 @@ class DatabaseApi:
             cur = conn.cursor()
             cur.executescript("""
                 CREATE TABLE Authors(id INTEGER PRIMARY KEY );
-                CREATE TABLE Illusts(author INTEGER , id INTEGER PRIMARY KEY );
+                CREATE TABLE Illusts(author INTEGER , id INTEGER PRIMARY KEY, title TEXT );
             """)
 
     def add_authors(self, authors_id):
@@ -446,7 +457,7 @@ class DatabaseApi:
         """
         with self.conn:
             cur = self.conn.cursor()
-            cur.executemany('INSERT INTO Illusts VALUES (?,?)',data)
+            cur.executemany('INSERT INTO Illusts VALUES (?,?,?)',data)
 
     def delete_authors(self, authors_id):
         with self.conn:

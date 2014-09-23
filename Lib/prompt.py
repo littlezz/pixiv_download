@@ -125,11 +125,22 @@ class Prompt:
 
     def list_illusts(self, illusts):
         left = format('{}', '<15')
-        right = format('| {}', '<15')
+        mid = format('| {}', '<15')
+        right = format('| {}', '<25')
+        print(left.format('作者id'), mid.format('作品id'), right.format('名字'))
+        for authorid, illustid, name in illusts:
+            print(left.format(authorid), mid.format(illustid), right.format(name))
 
-        print(left.format('作者id'), right.format('作品id'))
-        for authorid, illustid in illusts:
-            print(left.format(authorid), right.format(illustid))
+    def list_update(self, info :list):
+        """
+        :param info: [(author_id, illust_id),]
+        :return:
+        """
+        print('更新内容:')
+        if info:
+            self.list_illusts(info)
+        else:
+            print('没有更新')
 
 
 class Error:
