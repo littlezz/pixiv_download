@@ -174,7 +174,8 @@ class User:
 
     def login_ok(self):
         self.logined = True
-        print('login success!',self.phpsessid)
+        #print('login success!',self.phpsessid)
+        Prompt.login_ok()
 
     def read_phpsessid(self):
         if os.path.exists(self.phpsessid_file):

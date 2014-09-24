@@ -8,6 +8,17 @@ import socket
 timeouts = (Timeout, socket.timeout)
 
 
+def prefix_print(value):
+    def decorator(cls):
+        orig_method = cls.__getattribute__
+        def new_method(self, name):
+            print(value, end='')
+            return orig_method(self, name)
+        cls.__getattribute__ = new_method
+        return cls
+    return decorator
+
+
 def contain_type(type_=None):
     def decorator(func):
         @wraps(func)
