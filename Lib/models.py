@@ -18,6 +18,7 @@ import time
 from .prompt import Error, Prompt
 from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout, contain_type
 import sqlite3
+from bs4 import BeautifulSoup
 import logging
 logging.basicConfig(level=logging.WARNING, format='%(funcName)s: %(message)s')
 
@@ -96,7 +97,13 @@ class Author:
     def __init__(self, authorid, phpsessid):
         self.authorid = authorid
         self.phpsessid = phpsessid
-        exist_or_create(pathjoin(setting.root_folder, authorid))
+        self.name = self.get_authorname()
+        exist_or_create(pathjoin(setting.root_folder, '_'.join((authorid, self.name))))
+
+    @resolve_timeout('')
+    def get_authorname(self):
+        r = requests_get(urls.profile.format(self.authorid))
+        return BeautifulSoup(r.content).table.td.text.strip()
 
     def _get_illust(self, pn=1):
         while True:

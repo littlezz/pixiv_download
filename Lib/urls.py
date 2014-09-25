@@ -12,3 +12,6 @@ ILLUST_LIST = 'http://spapi.pixiv.net/iphone/member_illust.php?id={}&PHPSESSID={
 
 #referer in headers
 referer= 'http://www.pixiv.net/member_illust.php?mode=big&illust_id={}'
+
+#author profile
+profile = 'http://spapi.pixiv.net/iphone/profile.php?id={}'
