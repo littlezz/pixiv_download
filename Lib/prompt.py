@@ -6,11 +6,12 @@ from random import choice
 from functools import wraps
 from .decorators import threading_lock, prefix_print
 from shutil import get_terminal_size
-
+from contextlib import contextmanager
 
 error_lock = Lock()
 prompt_lock = Lock()
 prompt_detect_error_lock = Lock()
+test_lock =Lock()
 terminal_width, _ = get_terminal_size()
 
 # because of windows!
@@ -127,8 +128,6 @@ class Prompt:
             '链式回环加速 启动',
 
 
-
-
         )
 
     def randomtext(self):
@@ -184,7 +183,11 @@ class Prompt:
         else:
             print('没有更新')
 
-
+    @contextmanager
+    def valid_authorname(self):
+        print('正在检查id正确性...')
+        yield
+        print('检查完毕')
 
 
 
@@ -213,12 +216,16 @@ class Error:
         print(Color.fail('username or password is wrong, please try again'))
         print('静默两秒')
 
+
     @clear_output
-    def connect_not_ok(self, status_code, reason):
-        print(Color.fail('访问失败,错误代号{},原因{}'.format(status_code, reason)))
+    def connect_not_ok(self, url, status_code, reason):
+        print(Color.fail('{},错误代号{},原因{}'.format(url, status_code, reason)))
 
     def exist_authors(self, authors):
         print(' '.join(authors),' 已经存在!')
 
     def authors_not_exist(self, authors):
         print(' '.join(authors),' 不存在!')
+
+    def unvalide_authors(self, authors):
+        print('id ',','.join(authors), '无效')

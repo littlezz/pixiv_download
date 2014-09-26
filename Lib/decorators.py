@@ -12,7 +12,8 @@ def prefix_print(value):
     def decorator(cls):
         orig_method = cls.__getattribute__
         def new_method(self, name):
-            print(value, end='')
+            if not name.startswith('_'):
+                print(value, end='')
             return orig_method(self, name)
         cls.__getattribute__ = new_method
         return cls
@@ -48,9 +49,11 @@ def retry_connect(retry_times, timeout, error):
             while True:
                 try:
                     ret = func(*args, timeout=timeout, **kwargs)
+                    """
                     if ret.status_code != 200:
-                        error.connect_not_ok(ret.status_code, ret.reason)
+                        error.connect_not_ok(ret.url, ret.status_code, ret.reason)
                         raise Timeout
+                    """
                 except timeouts:
 
                     try_times += 1
@@ -100,7 +103,6 @@ def resolve_timeout(replace_value):
             try:
                 return func(*args, **kwargs)
             except timeouts as e:
-                print(type(e))
                 return replace_value
         return wrapper
     return decorator

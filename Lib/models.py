@@ -45,8 +45,9 @@ def exist_or_create(path):
 class Item:
     patter = re.compile(r'(.*?)mobile')
 
-    def __init__(self, list_):
+    def __init__(self, floder,list_):
         self._list = list_
+        self.floder = floder
         self.illust_id = list_[0]
         self.author_id = list_[1]
         self.extensions = list_[2]
@@ -63,7 +64,7 @@ class Item:
 
     def _dealwith_image(self):
         self.filename = self.mobile_image.split('/')[-1].split('_')[0] + '.' + self.extensions
-        self.path = pathjoin(setting.root_folder, self.author_id, self.filename)
+        self.path = pathjoin(setting.root_folder, self.floder, self.filename)
         try:
             self.image_url = self.patter.match(self.mobile_image).group(1) + self.filename
         #animation url
@@ -97,13 +98,34 @@ class Author:
     def __init__(self, authorid, phpsessid):
         self.authorid = authorid
         self.phpsessid = phpsessid
-        self.name = self.get_authorname()
-        exist_or_create(pathjoin(setting.root_folder, '_'.join((authorid, self.name))))
+        self.name = self.get_authorname(authorid)
+        if self.name:
+            self.flodername = '_'.join((authorid, self.name))
+        self._folder_control()
+    def _folder_control(self):
+        """
+        保持作者文件夹的命名
+        流程:
+            找出以authorid开头的文件夹(用split分离('_')取第0项.
+            if 存在:
+                判断和flodername是否相同,不同就改名
+            else:
+                建立flodername文件夹
+        :return:None
+        """
+        _floder = list(i for i in os.listdir(setting.root_folder) if i.split('_')[0] == self.authorid)
+        if _floder:
+            floder = _floder[0]
+            if floder != self.flodername:
+                os.rename(pathjoin(setting.root_folder, floder), pathjoin(setting.root_folder, self.flodername))
+        else:
+            os.mkdir(pathjoin(setting.root_folder, self.flodername))
 
+    @staticmethod
     @resolve_timeout('')
-    def get_authorname(self):
-        r = requests_get(urls.profile.format(self.authorid))
-        return BeautifulSoup(r.content).table.td.text.strip()
+    def get_authorname(authorid):
+        r = requests_get(urls.profile.format(authorid))
+        return BeautifulSoup(r.content).table.td.text.strip() if r.status_code == 200 else ''
 
     def _get_illust(self, pn=1):
         while True:
@@ -112,7 +134,7 @@ class Author:
                 break
             filelike = StringIO(req.text)
             for i in reader(filelike):
-                yield Item(i)
+                yield Item(self.flodername, i)
 
             pn += 1
 
@@ -243,7 +265,17 @@ class User:
         prompt.list_update(update_info)
 
     def do_add(self, authors):
-        self.database.add_authors(authors)
+        #self.database.add_authors(authors)
+        #add authors to database
+        with prompt.valid_authorname():
+            _authors = [(id, Author.get_authorname(id)) for id in authors]
+            unvalid = list(i[0] for i in _authors if i[1] == '')
+            if unvalid:
+                error.unvalide_authors(unvalid)
+                return
+
+
+        self.database.add_authors(_authors)
         downloading_item = self.do_download(authors)
         self.database.push_record(downloading_item)
 
@@ -444,19 +476,20 @@ class DatabaseApi:
         with sqlite3.connect(dbfile) as conn:
             cur = conn.cursor()
             cur.executescript("""
-                CREATE TABLE Authors(id INTEGER PRIMARY KEY );
+                CREATE TABLE Authors(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL, profile BLOB DEFAULT NULL );
                 CREATE TABLE Illusts(author INTEGER , id INTEGER PRIMARY KEY, title TEXT );
             """)
 
-    def add_authors(self, authors_id):
+    def add_authors(self, authors_id_and_name):
         """
-        :param authors_id: list,里面的类型应该为可以转话为int的类型,比如纯数字str或者int.所以不用特别转为int,保证纯数字即可.
+        :param authors: list,(author_id,author_name),id 保证纯数字
         :return:
         """
         with self.conn:
             cur = self.conn.cursor()
-            for i in authors_id:
-                cur.execute('INSERT INTO Authors values (?)', (i,))
+            #for i in authors_id:
+            #    cur.execute('INSERT INTO Authors(id, name) values (?)', (i,))
+            cur.executemany('INSERT INTO AUTHORS(id, name) VALUES (?, ?)', authors_id_and_name)
 
     def push_record(self, data):
         """
