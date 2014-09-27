@@ -19,6 +19,7 @@ from .prompt import Error, Prompt
 from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout, contain_type
 import sqlite3
 from bs4 import BeautifulSoup
+from queue import Queue
 import logging
 logging.basicConfig(level=logging.WARNING, format='%(funcName)s: %(message)s')
 
@@ -45,7 +46,7 @@ def exist_or_create(path):
 class Item:
     patter = re.compile(r'(.*?)mobile')
 
-    def __init__(self, floder,list_):
+    def __init__(self, floder, list_):
         self._list = list_
         self.floder = floder
         self.illust_id = list_[0]
@@ -95,13 +96,20 @@ class Item:
 
 class Author:
 
+    new_author_queue = Queue()
+
     def __init__(self, authorid, phpsessid):
         self.authorid = authorid
         self.phpsessid = phpsessid
         self.name = self.get_authorname(authorid)
         if self.name:
             self.flodername = '_'.join((authorid, self.name))
-        self._folder_control()
+            self._folder_control()
+
+    @classmethod
+    def _put_new_author(cls, author_name_and_id):
+        cls.new_author_queue.put(author_name_and_id)
+
     def _folder_control(self):
         """
         保持作者文件夹的命名
@@ -118,6 +126,7 @@ class Author:
             floder = _floder[0]
             if floder != self.flodername:
                 os.rename(pathjoin(setting.root_folder, floder), pathjoin(setting.root_folder, self.flodername))
+                self._put_new_author((self.name, self.authorid))
         else:
             os.mkdir(pathjoin(setting.root_folder, self.flodername))
 
@@ -251,7 +260,10 @@ class User:
 
     def do_update(self, authors):
         if not authors:
-            authors = self.database.pull_authors()
+            authors = self.database.pull_authors_id()
+
+        # update author name
+        Author.new_author_queue = Queue()
         exist_illusts = set(illust for author in authors for illust in self.database.get_illusts(author))
         download = Downloader(self.phpsessid, authors)
         download.get_item_list()
@@ -262,11 +274,16 @@ class User:
         else:
             update_info = list()
         update_info = sorted(update_info)
+
+        while Author.new_author_queue.qsize():
+            author_update = Author.new_author_queue.get()
+            self.database.update_authorname(author_update)
+
         prompt.list_update(update_info)
 
     def do_add(self, authors):
-        #self.database.add_authors(authors)
-        #add authors to database
+        # self.database.add_authors(authors)
+        # add authors to database
         with prompt.valid_authorname():
             _authors = [(id, Author.get_authorname(id)) for id in authors]
             unvalid = list(i[0] for i in _authors if i[1] == '')
@@ -284,7 +301,7 @@ class User:
         self.database.delete_authors(authors)
 
     def do_list(self, _):
-        exist_authors = self.database.pull_authors()
+        exist_authors = self.database.pull_authors_id()
         prompt.list_authors(exist_authors)
 
     def do_illusts(self, _):
@@ -356,7 +373,7 @@ class Parse:
 
         if self._validated_authors(authors):
             exists = []
-            exist_authors = self.database.pull_authors()
+            exist_authors = self.database.pull_authors_id()
             for i in exist_authors:
                 if i in authors:
                     exists.append(i)
@@ -370,7 +387,7 @@ class Parse:
     def check_operate_del(self, authors):
         if self._validated_authors(authors):
             not_exists = []
-            exist_authors = self.database.pull_authors()
+            exist_authors = self.database.pull_authors_id()
             for i in authors:
                 if i not in exist_authors:
                     not_exists.append(i)
@@ -458,10 +475,10 @@ class DatabaseApi:
         self.conn = sqlite3.connect(self.dbfile)
 
     @contain_type(str)
-    def pull_authors(self):
+    def pull_authors_id(self):
         with self.conn:
             cur = self.conn.cursor()
-            cur.execute('select * from Authors')
+            cur.execute('select id from Authors')
             return (i[0] for i in cur.fetchall())
 
     @contain_type(str)
@@ -513,4 +530,12 @@ class DatabaseApi:
             cur.execute('SELECT * FROM Illusts ORDER BY author')
             return list(cur.fetchall())
 
+    def update_authorname(self, author_name_and_id):
+        """
 
+        :param author_id_and_name: (name, id)
+        :return:
+        """
+        with self.conn:
+            cur = self.conn.cursor()
+            cur.execute('UPDATE Authors SET name=? WHERE id=?', author_name_and_id)

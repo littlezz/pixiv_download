@@ -71,7 +71,7 @@ step
 -  login success ---------------done
 -  download all image from illustor with threading ---------->done
 -  support auto check and update ------------->done!
--  support download manga
+-  ~~support download manga~~  
 -  support download animation and turn to gif format
 
 To Do
@@ -89,7 +89,7 @@ To Do
 - 在错误的提示加上前缀 ----------->done
 - support update ----------->done
 - 数据库中保存作者名字 ---------->done
-- 更新时更新作者名字
+- 更新时更新作者名字 ------------>done
 - 恢复非200重连
 - 在readme 中添加图片
 - beta 2.0
@@ -116,7 +116,11 @@ update
 - support `update` ----------------->9-23
 - 在每个错误提示前加了'error'的前缀. 有色彩了现在! ----------->9-24
 - 修改readme ------------>9-25
-- 文件夹命名方式改变.add时,验证id正确性,并将作者昵称计入数据库,修复Error提示的'Error' 重复的bug, 暂时吧非200状态重连移除.
+- 文件夹命名方式改变.add时,验证id正确性,并将作者昵称计入数据库,修复Error提示的'Error' 重复的bug, 暂时吧非200状态重连移除. ---->9-26
+- 使用`update` 时同时更新 数据库中的名字. -------------->9-27
+
+
+
 version
 ----------------
 ~~download only beta 1.0~~

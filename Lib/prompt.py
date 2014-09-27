@@ -185,6 +185,7 @@ class Prompt:
 
     @contextmanager
     def valid_authorname(self):
+        print('-' * self.terminal_size)
         print('正在检查id正确性...')
         yield
         print('检查完毕')
