@@ -3,6 +3,7 @@ __author__ = 'zz'
 from functools import wraps
 from requests import Timeout
 import socket
+from datetime import datetime
 import logging
 
 
@@ -79,6 +80,13 @@ def sema_lock(func):
         with s:
             return func(self, *args, **kwargs)
 
+    return wrapper
+
+def add_nowstrftime(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        ret = func(*args, **kwargs)
+        return tuple(list(ret) + [datetime.now().strftime('%y-%m-%d %H:%M')])
     return wrapper
 
 

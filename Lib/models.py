@@ -1,5 +1,6 @@
 __author__ = 'zz'
 
+from datetime import datetime
 import getpass
 from requests import get as _requests_get
 from requests import post as _requests_post
@@ -16,7 +17,7 @@ from .urls import referer as referer_template
 from os.path import join as pathjoin
 import time
 from .prompt import Error, Prompt
-from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout, contain_type
+from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout, contain_type, add_nowstrftime
 import sqlite3
 from bs4 import BeautifulSoup
 from queue import Queue
@@ -74,6 +75,7 @@ class Item:
 
     @sema_lock
     @put_data
+    @add_nowstrftime
     @prompt.prompt
     @resolve_timeout(None)
     @prompt.detect_error
@@ -284,13 +286,13 @@ class User:
     def do_add(self, authors):
         # self.database.add_authors(authors)
         # add authors to database
+        nowdate = datetime.now().strftime('%y-%m-%d %H:%M')
         with prompt.valid_authorname():
-            _authors = [(id, Author.get_authorname(id)) for id in authors]
+            _authors = [(id, Author.get_authorname(id), nowdate) for id in authors]
             unvalid = list(i[0] for i in _authors if i[1] == '')
             if unvalid:
                 error.unvalide_authors(unvalid)
                 return
-
 
         self.database.add_authors(_authors)
         downloading_item = self.do_download(authors)
@@ -438,7 +440,6 @@ class Downloader:
         prompt.report('获取作者列表')
 
 
-
     def _threading_download(self):
         Item.set_phpsessid(self.phpsessid)
         threading_list = []
@@ -493,29 +494,29 @@ class DatabaseApi:
         with sqlite3.connect(dbfile) as conn:
             cur = conn.cursor()
             cur.executescript("""
-                CREATE TABLE Authors(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL, profile BLOB DEFAULT NULL );
-                CREATE TABLE Illusts(author INTEGER , id INTEGER PRIMARY KEY, title TEXT );
+                CREATE TABLE Authors(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL, add_date TEXT, profile BLOB DEFAULT NULL );
+                CREATE TABLE Illusts(author INTEGER , id INTEGER PRIMARY KEY, title TEXT, add_date TEXT );
             """)
 
-    def add_authors(self, authors_id_and_name):
+    def add_authors(self, authors_info):
         """
-        :param authors: list,(author_id,author_name),id 保证纯数字
+        :param authors: list,(author_id,author_name, add_date),id 保证纯数字
         :return:
         """
         with self.conn:
             cur = self.conn.cursor()
             #for i in authors_id:
             #    cur.execute('INSERT INTO Authors(id, name) values (?)', (i,))
-            cur.executemany('INSERT INTO AUTHORS(id, name) VALUES (?, ?)', authors_id_and_name)
+            cur.executemany('INSERT INTO AUTHORS(id, name, add_date) VALUES (?, ?, ?)', authors_info)
 
     def push_record(self, data):
         """
-        :param data:[(authors_id:int,illust_id:int)]
+        :param data:[(authors_id:int,illust_id:int, title:str, add_date: str)]
         :return: None
         """
         with self.conn:
             cur = self.conn.cursor()
-            cur.executemany('INSERT INTO Illusts VALUES (?,?,?)',data)
+            cur.executemany('INSERT INTO Illusts VALUES (?,?,?,?)',data)
 
     def delete_authors(self, authors_id):
         with self.conn:

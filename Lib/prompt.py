@@ -165,12 +165,11 @@ class Prompt:
             print(i)
 
     def list_illusts(self, illusts):
-        left = format('{}', '<15')
-        mid = format('| {}', '<15')
-        right = format('| {}', '<25')
-        print(left.format('作者id'), mid.format('作品id'), right.format('名字'))
-        for authorid, illustid, name in illusts:
-            print(left.format(authorid), mid.format(illustid), right.format(name))
+        print_format = '{:<12}| {:<15}| {:<25} | {:<10}'
+        #print(left.format('作者id'), mid.format('作品id'), right.format('名字'))
+        print(print_format.format('作者id', '作品id', '作品名字', '加入时间'))
+        for info in illusts:
+            print(print_format.format(*info))
 
     def list_update(self, info :list):
         """
