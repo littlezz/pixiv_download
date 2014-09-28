@@ -20,8 +20,8 @@ from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeou
 import sqlite3
 from bs4 import BeautifulSoup
 from queue import Queue
-import logging
-logging.basicConfig(level=logging.WARNING, format='%(funcName)s: %(message)s')
+
+
 
 
 error = Error()

@@ -2,6 +2,7 @@
 *.~
 *.html
 pixiv分析.txt
-data/phpsessid.pickle
+data/
+!data/__init__.py
 collections/
 *.sqlite3

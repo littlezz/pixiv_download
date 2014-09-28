@@ -3,6 +3,7 @@ __author__ = 'zz'
 from functools import wraps
 from requests import Timeout
 import socket
+import logging
 
 
 timeouts = (Timeout, socket.timeout)
@@ -49,11 +50,15 @@ def retry_connect(retry_times, timeout, error):
             while True:
                 try:
                     ret = func(*args, timeout=timeout, **kwargs)
-                    """
+
                     if ret.status_code != 200:
-                        error.connect_not_ok(ret.url, ret.status_code, ret.reason)
-                        raise Timeout
-                    """
+                        # error.connect_not_ok(ret.url, ret.status_code, ret.reason)
+                        # raise Timeout
+                        logging.warning('%s is %s', ret.url, ret.status_code)
+                        if ret.status_code == 404:
+                            error.connect_not_ok(ret.url, ret.status_code, ret.reason)
+                            raise Timeout
+
                 except timeouts:
 
                     try_times += 1
