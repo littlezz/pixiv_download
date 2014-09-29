@@ -18,7 +18,7 @@ from os.path import join as pathjoin
 import time
 from .prompt import Error, Prompt
 from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout, contain_type, add_nowstrftime
-import sqlite3
+from .database_api import DatabaseApi
 from bs4 import BeautifulSoup
 from queue import Queue
 
@@ -266,7 +266,7 @@ class User:
 
         # update author name
         Author.new_author_queue = Queue()
-        exist_illusts = set(illust for author in authors for illust in self.database.get_illusts(author))
+        exist_illusts = set(illust for author in authors for illust in self.database.get_illusts_id(author))
         download = Downloader(self.phpsessid, authors)
         download.get_item_list()
         update_illusts = list(i for i in download.download_list if i.illust_id not in exist_illusts)
@@ -303,12 +303,10 @@ class User:
         self.database.delete_authors(authors)
 
     def do_list(self, _):
-        exist_authors = self.database.pull_authors_id()
-        prompt.list_authors(exist_authors)
+        prompt.list_authors(self.database.get_authors_info())
 
     def do_illusts(self, _):
-        illusts = self.database.pull_all_illusts()
-        prompt.list_illusts(illusts)
+        prompt.list_illusts(self.database.pull_all_illusts())
 
 
 class Parse:
@@ -408,7 +406,8 @@ class Parse:
 
     def check_operate_update(self, authors):
         if authors:
-            return self._validated_authors(authors)
+            # the same as del
+            return self.check_operate_del(authors)
         else:
             return True
 
@@ -466,77 +465,3 @@ class Downloader:
         return self.complete_info
 
 
-
-class DatabaseApi:
-    dbfile = setting.DATABASE
-
-    def __init__(self):
-        if not os.path.exists(self.dbfile):
-            self.create_database(self.dbfile)
-        self.conn = sqlite3.connect(self.dbfile)
-
-    @contain_type(str)
-    def pull_authors_id(self):
-        with self.conn:
-            cur = self.conn.cursor()
-            cur.execute('select id from Authors')
-            return (i[0] for i in cur.fetchall())
-
-    @contain_type(str)
-    def get_illusts(self, author):
-        with self.conn:
-            cur = self.conn.cursor()
-            cur.execute('SELECT id FROM Illusts WHERE author=?', (author,))
-            return (i[0] for i in cur.fetchall())
-
-    @staticmethod
-    def create_database(dbfile):
-        with sqlite3.connect(dbfile) as conn:
-            cur = conn.cursor()
-            cur.executescript("""
-                CREATE TABLE Authors(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL, add_date TEXT, profile BLOB DEFAULT NULL );
-                CREATE TABLE Illusts(author INTEGER , id INTEGER PRIMARY KEY, title TEXT, add_date TEXT );
-            """)
-
-    def add_authors(self, authors_info):
-        """
-        :param authors: list,(author_id,author_name, add_date),id 保证纯数字
-        :return:
-        """
-        with self.conn:
-            cur = self.conn.cursor()
-            #for i in authors_id:
-            #    cur.execute('INSERT INTO Authors(id, name) values (?)', (i,))
-            cur.executemany('INSERT INTO AUTHORS(id, name, add_date) VALUES (?, ?, ?)', authors_info)
-
-    def push_record(self, data):
-        """
-        :param data:[(authors_id:int,illust_id:int, title:str, add_date: str)]
-        :return: None
-        """
-        with self.conn:
-            cur = self.conn.cursor()
-            cur.executemany('INSERT INTO Illusts VALUES (?,?,?,?)',data)
-
-    def delete_authors(self, authors_id):
-        with self.conn:
-            cur = self.conn.cursor()
-            for i in authors_id:
-                cur.execute('DELETE FROM Authors WHERE id=?',(i,))
-                cur.execute('DELETE FROM Illusts WHERE author=?',(i,))
-
-    def pull_all_illusts(self):
-        with self.conn:
-            cur = self.conn.cursor()
-            cur.execute('SELECT * FROM Illusts ORDER BY author')
-            return list(cur.fetchall())
-
-    def update_authorname(self, author_name_and_id):
-        """
-
-        :param author_id_and_name: (name, id)
-        :return:
-        """
-        with self.conn:
-            cur = self.conn.cursor()
-            cur.execute('UPDATE Authors SET name=? WHERE id=?', author_name_and_id)

@@ -20,16 +20,13 @@ quickstart
 -----------------
 
 ###list
-
 list authors' id that in database
 
 ###illusts
-
 list illusts' id that in database
 
 
 ###add [author_id,]
-
 将作者添加到数据库并下载其作品,随后可用update指令保持数据库中作者的作品更新
 
 ###del [author_id,]
@@ -93,9 +90,10 @@ To Do
 - ~~恢复非200重连~~
 - 让prompt格式更准确
 - 在readme 中添加图片
-- 记录作者和作品的加入时间
+- 记录作者和作品的加入时间 ------------->done
 - 输出数据库信息是多种排序选择
 - beta 2.0
+- 加入时间的处理可能要再考虑一下更好的办法 
 
 update
 ------------
@@ -123,6 +121,7 @@ update
 - 使用`update` 时同时更新 数据库中的名字. -------------->9-27
 - 在404的状态下进行重连, 记录非200状态到`status_error.log` 中. ------------>9-28
 - 记录作品加入的时间,在`iilusts` 中有显示 ------------------------------>9-28
+- 将databaseapi从model中独立了出来,作者列表显示加入时间,修复可以update不存在的用户id的bug -------->9-29
 
 
 version

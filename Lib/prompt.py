@@ -160,9 +160,10 @@ class Prompt:
 
     @staticmethod
     def list_authors(authors):
-        print('加入数据库的作者id:')
-        for i in authors:
-            print(i)
+        print_format = '{:<12}| {:<15}| {:<20}'
+        print(print_format.format('作者id', '名字', '添加时间'))
+        for info in authors:
+            print(print_format.format(*info))
 
     def list_illusts(self, illusts):
         print_format = '{:<12}| {:<15}| {:<25} | {:<10}'
