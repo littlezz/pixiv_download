@@ -13,18 +13,25 @@ quickstart
 - 输入`update` 自动更新之前添加过的作者的作品
 - `del` + 作者id ,将作者从数据移除(不会删除图片)
 - `exit` 退出程序
+- `authors` 输出数据库中作者的信息
+- `illusts` 输出数据库中作品的信息
 
 * * *
 
 详细指令用法
 -----------------
 
-###list
-list authors' id that in database
+###authors [order_by]
+list authors' info that in database
+if you want special order,for example, order by author's name, use  
+`authors by name`  
+support order ,`name`,`id`,`add_date`
 
 ###illusts
-list illusts' id that in database
+list illusts' info that in database
 
+like the command`authors`,  
+support order, `id`,`author`,`title`,`add_date`
 
 ###add [author_id,]
 将作者添加到数据库并下载其作品,随后可用update指令保持数据库中作者的作品更新
@@ -88,10 +95,10 @@ To Do
 - 数据库中保存作者名字 ---------->done
 - 更新时更新作者名字 ------------>done
 - ~~恢复非200重连~~
-- 让prompt格式更准确
+- ~~让prompt格式更准确~~
 - 在readme 中添加图片
 - 记录作者和作品的加入时间 ------------->done
-- 输出数据库信息是多种排序选择
+- 输出数据库信息是多种排序选择 --------->done
 - beta 2.0
 - 加入时间的处理可能要再考虑一下更好的办法 
 
@@ -122,6 +129,7 @@ update
 - 在404的状态下进行重连, 记录非200状态到`status_error.log` 中. ------------>9-28
 - 记录作品加入的时间,在`iilusts` 中有显示 ------------------------------>9-28
 - 将databaseapi从model中独立了出来,作者列表显示加入时间,修复可以update不存在的用户id的bug -------->9-29
+- 将`list`指令改为`authors`,  输出信息可以按不同类别排序 ---------->9-30
 
 
 version

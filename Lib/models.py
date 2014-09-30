@@ -17,12 +17,10 @@ from .urls import referer as referer_template
 from os.path import join as pathjoin
 import time
 from .prompt import Error, Prompt
-from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout, contain_type, add_nowstrftime
+from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout, add_nowstrftime
 from .database_api import DatabaseApi
 from bs4 import BeautifulSoup
 from queue import Queue
-
-
 
 
 error = Error()
@@ -146,7 +144,6 @@ class Author:
             filelike = StringIO(req.text)
             for i in reader(filelike):
                 yield Item(self.flodername, i)
-
             pn += 1
 
 
@@ -172,7 +169,7 @@ class Author:
 class User:
 
     #只用在这里修改即可,在Parse和User在添加相应的方法
-    support_operate = ('download', 'exit', 'add', 'del', 'list', 'illusts', 'update')
+    support_operate = ('download', 'exit', 'add', 'del', 'authors', 'illusts', 'update')
 
     def __init__(self):
         self.database = DatabaseApi()
@@ -253,7 +250,6 @@ class User:
         download = Downloader(self.phpsessid, authors)
         return download.download()
 
-
     def do_exit(self, _):
         print('bye')
         self.database.conn.close()
@@ -298,15 +294,14 @@ class User:
         downloading_item = self.do_download(authors)
         self.database.push_record(downloading_item)
 
-
     def do_del(self, authors):
         self.database.delete_authors(authors)
 
-    def do_list(self, _):
-        prompt.list_authors(self.database.get_authors_info())
+    def do_authors(self, order):
+        prompt.list_authors(self.database.get_authors_info(order=order))
 
-    def do_illusts(self, _):
-        prompt.list_illusts(self.database.pull_all_illusts())
+    def do_illusts(self, order):
+        prompt.list_illusts(self.database.pull_all_illusts(order=order))
 
 
 class Parse:
@@ -327,11 +322,12 @@ class Parse:
         if operate not in self._keys:
             error.unavailble_operate(operate)
             return
+
+        self.operate = operate
+        self.args = args
+
         check = getattr(self, 'check_operate_' + operate)
         self.status = check(args)
-        if self.status:
-            self.operate = operate
-            self.args = args
 
     def user_sure(self):
         if not self.status:
@@ -340,6 +336,7 @@ class Parse:
         _input = input('Is This Ok? [y/N]:')
         if _input == 'y':
             self.sure = True
+
 
     @staticmethod
     def _validated_authors(authors):
@@ -357,6 +354,13 @@ class Parse:
 
         error.unavailble_args()
         return False
+
+    def _validated_order_command(self, command: list):
+        if command[0] == 'by' and command[1]:
+            return True
+        else:
+            error.unavailble_args()
+            return False
 
     def check_operate_download(self, authors):
         return self._validated_authors(authors)
@@ -398,11 +402,30 @@ class Parse:
             else:
                 return True
 
-    def check_operate_list(self, _):
-        return True
+    def check_operate_authors(self, command):
+        """
+        for example, list by id
+        """
+        if not command:
+            self.args = None
+            return True
 
-    def check_operate_illusts(self, _):
-        return True
+        if self._validated_order_command(command):
+            if command[1] in self.database.support_author_order:
+                self.args = command[1]
+                return True
+        return False
+
+    def check_operate_illusts(self, command):
+        if not command:
+            self.args = None
+            return True
+
+        if self._validated_order_command(command):
+            if command[1] in self.database.support_illust_order:
+                self.args = command[1]
+                return True
+        return False
 
     def check_operate_update(self, authors):
         if authors:
@@ -410,6 +433,7 @@ class Parse:
             return self.check_operate_del(authors)
         else:
             return True
+
 
 class Downloader:
 
