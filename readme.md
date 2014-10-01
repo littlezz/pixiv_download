@@ -15,6 +15,16 @@ quickstart
 - `exit` 退出程序
 - `authors` 输出数据库中作者的信息
 - `illusts` 输出数据库中作品的信息
+- `authors by [order_by]` 输出信息,按不同的方法排序,比如以作者的名字排序,输入`authors by name`
+- `illusts by [order_by]` 同上,作品信息.
+
+
+screenshot
+--------------
+![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/add-operator.png)
+![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/downloading.png)
+![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/finish-report.png)
+
 
 * * *
 
@@ -25,13 +35,13 @@ quickstart
 list authors' info that in database
 if you want special order,for example, order by author's name, use  
 `authors by name`  
-support order ,`name`,`id`,`add_date`
+support order = `name`,`id`,`add_date`
 
-###illusts
+###illusts [order_by]
 list illusts' info that in database
 
 like the command`authors`,  
-support order, `id`,`author`,`title`,`add_date`
+support order = `id`,`author`,`title`,`add_date`
 
 ###add [author_id,]
 将作者添加到数据库并下载其作品,随后可用update指令保持数据库中作者的作品更新
@@ -96,7 +106,7 @@ To Do
 - 更新时更新作者名字 ------------>done
 - ~~恢复非200重连~~
 - ~~让prompt格式更准确~~
-- 在readme 中添加图片
+- 在readme 中添加图片----------->done
 - 记录作者和作品的加入时间 ------------->done
 - 输出数据库信息是多种排序选择 --------->done
 - beta 2.0
@@ -130,7 +140,7 @@ update
 - 记录作品加入的时间,在`iilusts` 中有显示 ------------------------------>9-28
 - 将databaseapi从model中独立了出来,作者列表显示加入时间,修复可以update不存在的用户id的bug -------->9-29
 - 将`list`指令改为`authors`,  输出信息可以按不同类别排序 ---------->9-30
-
+- 小改动,加上了截图
 
 version
 ----------------

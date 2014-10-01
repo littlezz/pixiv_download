@@ -63,6 +63,7 @@ class Color(bcolors):
 
 class Prompt:
 
+    input_prompt = """>>> 输入指令和相应的参数,用空格隔开\n"""
 
     def __init__(self, total=0):
         self.total = total
@@ -159,6 +160,15 @@ class Prompt:
         print(Color.okgreen('login success!'))
 
     @staticmethod
+    def back_commandline():
+        print('返回交互式命令行')
+
+    @staticmethod
+    def not_y_or_N():
+        print('无效的选择')
+
+
+    @staticmethod
     def list_authors(authors):
         print_format = '{:<12}| {:<15}| {:<20}'
         print(print_format.format('作者id', '名字', '添加时间'))
@@ -189,6 +199,7 @@ class Prompt:
         print('正在检查id正确性...')
         yield
         print('检查完毕')
+
 
 
 

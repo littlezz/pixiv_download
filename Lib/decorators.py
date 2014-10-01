@@ -13,6 +13,7 @@ timeouts = (Timeout, socket.timeout)
 def prefix_print(value):
     def decorator(cls):
         orig_method = cls.__getattribute__
+
         def new_method(self, name):
             if not name.startswith('_'):
                 print(value, end='')
@@ -86,7 +87,7 @@ def add_nowstrftime(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         ret = func(*args, **kwargs)
-        return tuple(list(ret) + [datetime.now().strftime('%y-%m-%d %H:%M')])
+        return list(ret) + [datetime.now().strftime('%y-%m-%d %H:%M')]
     return wrapper
 
 

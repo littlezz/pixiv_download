@@ -19,8 +19,7 @@ THREAD_NUMS = 4
 #root
 root_folder = 'collections'
 
-#user input prompt
-input_prompt = """>>> 输入操作和作者id,用空格隔开\n"""
+
 
 #Error 中重连提示网络不稳定的边界值
 connect_fail_prompt_bound = 6

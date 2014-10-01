@@ -21,7 +21,7 @@ from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeou
 from .database_api import DatabaseApi
 from bs4 import BeautifulSoup
 from queue import Queue
-
+import logging
 
 error = Error()
 prompt = Prompt()
@@ -83,7 +83,6 @@ class Item:
             headers = {'referer': referer_template.format(self.illust_id)}
             cookies = {'PHPSESSID': self.phpsessid}
             req = requests_get(self.image_url, headers=headers, cookies=cookies)
-
             with open(self.path, 'wb') as f:
                 f.write(req.content)
 
@@ -154,7 +153,6 @@ class Author:
     @prompt.detect_error
     def get_illusts(self, support_types=None):
         """
-        在这里和数据库对比过滤已经下载过的.
         在两个装饰器下,这个方法变得有点奇怪,他实际接受两个二外的参数,sema 和 deque.
         :return: a list include instance of Item
         """
@@ -211,7 +209,7 @@ class User:
 
     def login_ok(self):
         self.logined = True
-        #print('login success!',self.phpsessid)
+        logging.debug('login !!! %s',self.phpsessid)
         Prompt.login_ok()
 
     def read_phpsessid(self):
@@ -222,6 +220,7 @@ class User:
             return '0'
 
     def write_phpsessid(self):
+        logging.debug('write phpsessid %s', self.phpsessid)
         with open(self.phpsessid_file, 'wb') as f:
             pickle.dump(self.phpsessid, f)
 
@@ -240,7 +239,7 @@ class User:
     @loop
     def interactive(self):
         parse = Parse(self.support_operate, self.database)
-        parse.parse(input(setting.input_prompt))
+        parse.parse(input(Prompt.input_prompt))
         parse.user_sure()
         if parse.status and parse.sure:
             getattr(self, 'do_' + parse.operate)(parse.args)
@@ -280,7 +279,6 @@ class User:
         prompt.list_update(update_info)
 
     def do_add(self, authors):
-        # self.database.add_authors(authors)
         # add authors to database
         nowdate = datetime.now().strftime('%y-%m-%d %H:%M')
         with prompt.valid_authorname():
@@ -336,6 +334,11 @@ class Parse:
         _input = input('Is This Ok? [y/N]:')
         if _input == 'y':
             self.sure = True
+        elif _input == 'N':
+            Prompt.back_commandline()
+        else:
+            Prompt.not_y_or_N()
+            Prompt.back_commandline()
 
 
     @staticmethod
