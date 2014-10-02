@@ -86,7 +86,7 @@ step
 -  download all image from illustor with threading ---------->done
 -  support auto check and update ------------->done!
 -  ~~support download manga~~  
--  support download animation and turn to gif format
+-  ~~support download animation and turn to gif format~~
 
 To Do
 -------------
@@ -140,7 +140,8 @@ update
 - 记录作品加入的时间,在`iilusts` 中有显示 ------------------------------>9-28
 - 将databaseapi从model中独立了出来,作者列表显示加入时间,修复可以update不存在的用户id的bug -------->9-29
 - 将`list`指令改为`authors`,  输出信息可以按不同类别排序 ---------->9-30
-- 小改动,加上了截图
+- 小改动,加上了截图----------->10-1
+- 暂时不弄动图了(<-弄不出)-------->10-2
 
 version
 ----------------
