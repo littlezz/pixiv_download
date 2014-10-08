@@ -2,7 +2,12 @@
 *.~
 *.html
 pixiv分析.txt
-data/
-!data/__init__.py
+/data/
+
 collections/
 *.sqlite3
+win_version/data/phpsessid.pickle
+win_version/data/status_error.log
+win_version/collecions/
+*__pycache__/
+!data/__init__.py

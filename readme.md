@@ -1,7 +1,7 @@
 pixiv_download
 ===================
-下载pixiv一个作者的所有插画
-
+下载pixiv一个作者的所有插画  
+这是linux的版本,windows 版本见win_version目录.
 
 
 quickstart
@@ -63,6 +63,8 @@ Required
 ----------------
 - python3 
 - requests >= 2.3.0
+- beautifulsoup
+- lxml
 
 * * *
 
@@ -142,7 +144,8 @@ update
 - 将`list`指令改为`authors`,  输出信息可以按不同类别排序 ---------->9-30
 - 小改动,加上了截图----------->10-1
 - 暂时不弄动图了(<-弄不出)-------->10-2
+- windows version --------------->10-8
 
 version
 ----------------
-~~download only beta 1.0~~
+pixiv download V2.12
