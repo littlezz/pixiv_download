@@ -42,6 +42,8 @@ class bcolors:
 
 class Color(bcolors):
 
+
+    # this method is change and do nothing now!
     @staticmethod
     def process(kind: str, value):
         return value
@@ -170,6 +172,7 @@ class Prompt:
         print('无效的选择')
 
 
+    # for win
     @staticmethod
     def list_authors(authors):
         print_format = '{:<12}'
@@ -177,6 +180,7 @@ class Prompt:
         for info in authors:
             print(print_format.format(info[0]))
 
+    # for win
     def list_illusts(self, illusts):
         print_format = '{:<12}| {:<15}|'
         #print(left.format('作者id'), mid.format('作品id'), right.format('名字'))

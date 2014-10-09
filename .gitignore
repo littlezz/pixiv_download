@@ -6,8 +6,6 @@ pixiv分析.txt
 
 collections/
 *.sqlite3
-win_version/data/phpsessid.pickle
-win_version/data/status_error.log
-win_version/collecions/
+*.pyc
 *__pycache__/
 !data/__init__.py

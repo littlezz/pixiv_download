@@ -91,11 +91,12 @@ def add_nowstrftime(func):
     return wrapper
 
 
-def put_data(func):
+def put_valided_data(func):
     @wraps(func)
     def wrapper(self, _deque, *args, **kwargs):
         ret_list = func(self, *args, **kwargs)
-        _deque.append(ret_list)
+        if ret_list:
+            _deque.append(ret_list)
 
     return wrapper
 

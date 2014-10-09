@@ -14,8 +14,7 @@ prompt_detect_error_lock = Lock()
 test_lock =Lock()
 terminal_width, _ = get_terminal_size()
 
-# because of windows!
-terminal_width -= 1
+
 
 
 def clear_output(func):

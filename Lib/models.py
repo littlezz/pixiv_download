@@ -16,13 +16,20 @@ from collections import deque
 from .urls import referer as referer_template
 from os.path import join as pathjoin
 import time
-from .prompt import Error, Prompt
-from .decorators import retry_connect, sema_lock, put_data, loop, resolve_timeout, add_nowstrftime
+
+from .decorators import retry_connect, sema_lock, put_valided_data, loop, resolve_timeout, add_nowstrftime
 from .database_api import DatabaseApi
 from bs4 import BeautifulSoup
 from queue import Queue
+import platform
 import logging
 
+
+#determine the system and import diffrent prompt.py
+if platform.system() == 'Linux':
+    from .prompt import Error, Prompt
+else:
+    from .prompt_for_win import Error, Prompt
 error = Error()
 prompt = Prompt()
 
@@ -72,10 +79,10 @@ class Item:
             self.type = 'animation'
 
     @sema_lock
-    @put_data
+    @put_valided_data
     @add_nowstrftime
     @prompt.prompt
-    @resolve_timeout(None)
+    @resolve_timeout([])
     @prompt.detect_error
     def download(self):
         if not os.path.exists(self.path):
@@ -147,7 +154,7 @@ class Author:
 
 
     @sema_lock
-    @put_data
+    @put_valided_data
     @prompt.prompt
     @resolve_timeout([])
     @prompt.detect_error
@@ -160,6 +167,61 @@ class Author:
             support_types = ('image',)
 
         return list(item for item in self._get_illust() if item.type in support_types)
+
+
+class Downloader:
+
+    def __init__(self, phpsessid, author_list):
+        self.phpsessid = phpsessid
+        self.author_list = author_list
+        self.download_list = list()
+        self.complete_info = deque() # download return (authorid, illustid)
+        self.sema = threading.Semaphore(setting.THREAD_NUMS)
+        self._deque = deque()
+        exist_or_create(setting.root_folder)
+
+    def get_item_list(self):
+        threading_list = []
+        prompt.reset(len(self.author_list), '正在获取作者作品列表')
+
+        for author in self.author_list:
+            a = Author(author, self.phpsessid)
+            t = threading.Thread(target=a.get_illusts, args=(self.sema, self._deque))
+            threading_list.append(t)
+            t.start()
+
+        [t.join() for t in threading_list]
+        for lt in self._deque:
+            self.download_list.extend(lt)
+
+        prompt.report('获取作者列表')
+
+
+    def _threading_download(self):
+        Item.set_phpsessid(self.phpsessid)
+        threading_list = []
+        for item in self.download_list:
+            t = threading.Thread(target=item.download, args=(self.sema, self.complete_info))
+            threading_list.append(t)
+            t.start()
+
+        [t.join() for t in threading_list]
+
+    def download(self, download_list=None):
+        """
+        :param download_list:
+        :return: comelete_info
+        """
+        if download_list:
+            self.download_list = download_list
+        else:
+            self.get_item_list()
+        prompt.reset(len(self.download_list), '正在下载')
+        self._threading_download()
+        prompt.report('下载图片')
+
+        return self.complete_info
+
 
 
 
@@ -288,8 +350,8 @@ class User:
                 error.unvalide_authors(unvalid)
                 return
 
-        self.database.add_authors(_authors)
         downloading_item = self.do_download(authors)
+        self.database.add_authors(_authors)
         self.database.push_record(downloading_item)
 
     def do_del(self, authors):
@@ -436,59 +498,4 @@ class Parse:
             return self.check_operate_del(authors)
         else:
             return True
-
-
-class Downloader:
-
-    def __init__(self, phpsessid, author_list):
-        self.phpsessid = phpsessid
-        self.author_list = author_list
-        self.download_list = list()
-        self.complete_info = deque() # download return (authorid, illustid)
-        self.sema = threading.Semaphore(setting.THREAD_NUMS)
-        self._deque = deque()
-        exist_or_create(setting.root_folder)
-
-    def get_item_list(self):
-        threading_list = []
-        prompt.reset(len(self.author_list), '正在获取作者作品列表')
-
-        for author in self.author_list:
-            a = Author(author, self.phpsessid)
-            t = threading.Thread(target=a.get_illusts, args=(self.sema, self._deque))
-            threading_list.append(t)
-            t.start()
-
-        [t.join() for t in threading_list]
-        for lt in self._deque:
-            self.download_list.extend(lt)
-
-        prompt.report('获取作者列表')
-
-
-    def _threading_download(self):
-        Item.set_phpsessid(self.phpsessid)
-        threading_list = []
-        for item in self.download_list:
-            t = threading.Thread(target=item.download, args=(self.sema, self.complete_info))
-            threading_list.append(t)
-            t.start()
-
-        [t.join() for t in threading_list]
-
-    def download(self, download_list=None):
-        """
-        :param download_list:
-        :return: comelete_info
-        """
-        if download_list:
-            self.download_list = download_list
-        else:
-            self.get_item_list()
-        prompt.reset(len(self.download_list), '正在下载')
-        self._threading_download()
-        prompt.report('下载图片')
-
-        return self.complete_info
-
 

@@ -1,8 +1,40 @@
 pixiv_download
 ===================
 下载pixiv一个作者的所有插画  
-这是linux的版本,windows 版本见win_version目录.
 
+
+Windows平台
+==============
+因为windows的命令行编码方式为gbk,无法输出一些特殊字符，所以win版本移除了彩色的输出,和名字的输出.功能没有删减.
+另有封装好的可执行文件放在arch目录中.
+
+
+快速开始
+------------
+打开程序后会进入一个简单的交互式命令行,下载好的在程序目录的collections文件夹内
+
+- 打开程序,登陆,输入密码是不会显示符号的
+- 输入`add` 后面跟作者的id,多个id空格隔开,随后作品会自动下载
+- 输入`update` 自动更新之前添加过的作者的作品
+- `del` + 作者id ,将作者从数据移除(不会删除图片)
+- `exit` 退出程序
+- `authors` 输出数据库中作者的信息
+- `illusts` 输出数据库中作品的信息
+
+
+截图
+-----------------
+![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/windows_2.jpg)
+![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/windows_3.jpg)
+![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/windows_4.jpg)
+
+
+
+
+* * *
+
+Linux
+=============
 
 quickstart
 ------------
@@ -145,7 +177,10 @@ update
 - 小改动,加上了截图----------->10-1
 - 暂时不弄动图了(<-弄不出)-------->10-2
 - windows version --------------->10-8
+- 移除特别的windows 版本，因为要修改的只有prompt，载如不同的prompt就可以了,修复下载失败依然添加数据库的bug ---------->10-9
+
 
 version
 ----------------
-pixiv download V2.12
+正式版
+pixiv download V2.13
