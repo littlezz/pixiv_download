@@ -24,10 +24,9 @@ Windows平台
 
 截图
 -----------------
-![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/windows_2.jpg)
-![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/windows_3.jpg)
-![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/windows_4.jpg)
-
+![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/windows_2.jpg)  
+![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/windows_3.jpg)  
+![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/windows_4.jpg)  
 
 
 
@@ -53,10 +52,9 @@ quickstart
 
 screenshot
 --------------
-![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/add-operator.png)
-![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/downloading.png)
+![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/add-operator.png)  
+![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/downloading.png)  
 ![](https://github.com/littlezz/pixiv_download/blob/master/screenshot/finish-report.png)
-
 
 * * *
 
@@ -177,7 +175,7 @@ update
 - 小改动,加上了截图----------->10-1
 - 暂时不弄动图了(<-弄不出)-------->10-2
 - windows version --------------->10-8
-- 移除特别的windows 版本，因为要修改的只有prompt，载如不同的prompt就可以了,修复下载失败依然添加数据库的bug ---------->10-9
+- 移除特别的windows 版本，因为要修改的只有prompt，载如不同的prompt就可以了,修复下载失败依然添加数据库的bug,封装好的文件在arch目录下 ---------->10-9
 
 
 version
