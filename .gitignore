@@ -9,3 +9,4 @@ collections/
 *.pyc
 *__pycache__/
 !data/__init__.py
+Lib/old_version_pixivdownload_with_manga/

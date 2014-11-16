@@ -48,6 +48,13 @@ def exist_or_create(path):
     if not os.path.exists(path):
         os.mkdir(path)
 
+# because of windowns!
+def safe_windows_dirname(unsafe_str):
+    """
+    convert ?|\|.|<|>|/|| to ''
+    """
+    pat = re.compile('\?*\\*\.*<*>*/*\|*')
+    return pat.sub('', unsafe_str)
 
 class Item:
     patter = re.compile(r'(.*?)mobile')
@@ -109,7 +116,7 @@ class Author:
         self.phpsessid = phpsessid
         self.name = self.get_authorname(authorid)
         if self.name:
-            self.flodername = '_'.join((authorid, self.name))
+            self.flodername = safe_windows_dirname('_'.join((authorid, self.name)))
             self._folder_control()
 
     @classmethod

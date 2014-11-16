@@ -141,8 +141,12 @@ To Do
 - 在readme 中添加图片----------->done
 - 记录作者和作品的加入时间 ------------->done
 - 输出数据库信息是多种排序选择 --------->done
-- beta 2.0
+- ~~beta 2.0~~
 - 加入时间的处理可能要再考虑一下更好的办法 
+- 修正windows下文件夹名字中不能包含特殊字符的bug ----------->done
+- support download manga
+
+
 
 update
 ------------
@@ -176,9 +180,10 @@ update
 - 暂时不弄动图了(<-弄不出)-------->10-2
 - windows version --------------->10-8
 - 移除特别的windows 版本，因为要修改的只有prompt，载如不同的prompt就可以了,修复下载失败依然添加数据库的bug,封装好的文件在arch目录下 ---------->10-9
+- windows safe dirname -------------------> 11-16
 
 
 version
 ----------------
 正式版
-pixiv download V2.13
+pixiv download dev ~~V2.13~~
