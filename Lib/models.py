@@ -53,8 +53,9 @@ def safe_windows_dirname(unsafe_str):
     """
     convert ?|\|.|<|>|/|| to ''
     """
-    pat = re.compile('\?*\\*\.*<*>*/*\|*')
+    pat = re.compile(r'\?*\\*\.*<*>*/*\|*')
     return pat.sub('', unsafe_str)
+
 
 class Item:
     patter = re.compile(r'(.*?)mobile')
