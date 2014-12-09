@@ -10,4 +10,4 @@ collections/
 __pycache__/
 !data/__init__.py
 Lib/old_version_pixivdownload_with_manga/
-/old version/arch/amd64.zip
+/old_version/arch/amd64.zip
