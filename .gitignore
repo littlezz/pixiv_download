@@ -2,11 +2,12 @@
 *.~
 *.html
 pixiv分析.txt
-/data/
+data/
 
 collections/
 *.sqlite3
-*.pyc
-*__pycache__/
+
+__pycache__/
 !data/__init__.py
 Lib/old_version_pixivdownload_with_manga/
+/old version/arch/amd64.zip
