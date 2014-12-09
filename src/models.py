@@ -1,8 +1,14 @@
+import getpass
 import os
+import pickle
 import queue
 import threading
+import time
 from zzlib.decorators import loop, retry_connect
+from . import settings
+from . import urls
 from requests import get as _get
+import requests
 
 __author__ = 'zz'
 
@@ -15,17 +21,76 @@ def requests_get(url, **kwargs):
 class PixivUser:
 
     def __init__(self):
-        pass
+        self.session = requests.Session()
+        self.phpsessid = ''
+        self._logged = False
+        self.phpsessid_file = settings.PHPSESSID_FILE
 
     def login(self):
-        pass
+        try:
+            with open(self.phpsessid_file, 'rb') as file:
+                phpsessid = pickle.load(file)
+        except FileNotFoundError:
+            phpsessid=''
+
+        if not phpsessid:
+            self._confirm_login()
+
+        resp = requests_get(urls.TEST_LOGGED_URL.format(phpsessid))
+
+        if resp.text:
+            self.phpsessid = phpsessid
+            self._logged = True
+        else:
+            self._confirm_login()
+
+        if not self._logged:
+            raise RuntimeError
+
+
+    @loop
+    def _confirm_login(self):
+        username = input('username:\n')
+        password = getpass.getpass('password:\n')
+
+        payload = {'mode': 'login', 'return_to': '', 'pixiv_id': username, 'pass': password, 'skip': 1}
+
+        self._login_resp = self.session.post(urls.LOGIN, data=payload)
+
+        if self._login_resp == urls.SUCCESS_REDIRECT:
+            self._logged = True
+            self.phpsessid = self._get_phpsessid(self._login_resp.request.headers['cookie'])
+            self._write_phpsessid()
+
+            return True
+        else:
+            # error
+            time.sleep(2)
+
+
+    @staticmethod
+    def _get_phpsessid(cookie):
+        for s in cookie.split(';'):
+            if s.startswith('PHPSESSID'):
+                return s[10:]
+
+    def _write_phpsessid(self):
+        with open(self.phpsessid_file, 'wb') as file:
+            pickle.dump(self.phpsessid, file)
+
+    @retry_connect(retry_times=3, timeout=3, error=None)
+    def get(self, url, **kwargs):
+        """ 带重连的session 连接"""
+
+        return self.session.get(url, **kwargs)
+
 
 
 class UserInputParse:
     def __init__(self):
         self.action = ''
 
-    def parse(self, info:str):
+    def parse(self, info: str):
         pass
 
     def isvalid(self):
